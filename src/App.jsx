@@ -243,10 +243,6 @@ function App() {
         <div className="hero-copy">
           <p className="eyebrow">BeautyCenter AI</p>
           <h1>Chuyên gia làm đẹp AI của riêng bạn</h1>
-          <p className="lead">
-            Bản web Belumi giới thiệu trải nghiệm, cho phép đọc blogs/news và
-            đưa người dùng về ứng dụng để sử dụng các tính năng AI chuyên sâu.
-          </p>
           <div className="hero-actions">
             <a className="primary-btn" href={appLink}>
               Truy cập ứng dụng <ArrowRight size={18} />
