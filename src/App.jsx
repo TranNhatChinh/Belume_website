@@ -10,9 +10,7 @@ import {
   Palette,
   Save,
   ScanText,
-  ShieldCheck,
   Sparkles,
-  Star,
   Trash2,
   X,
 } from 'lucide-react'
@@ -257,17 +255,6 @@ function App() {
               Đọc blogs/news <BookOpenText size={18} />
             </a>
           </div>
-          <div className="trust-row" aria-label="Belumi highlights">
-            <span>
-              <ShieldCheck size={16} /> Privacy-first
-            </span>
-            <span>
-              <Star size={16} /> Beauty AI
-            </span>
-            <span>
-              <CheckCircle2 size={16} /> Quy trình cá nhân
-            </span>
-          </div>
         </div>
 
         <div className="hero-card" aria-label="Belumi app preview">
@@ -288,10 +275,6 @@ function App() {
         <div className="section-head">
           <p className="eyebrow">Feature gateway</p>
           <h2>Tính năng chuyên sâu sẽ mở trong ứng dụng</h2>
-          <p>
-            Ngoại trừ blogs/news, mỗi feature được trình bày như một lối vào
-            nhẹ nhàng để người dùng tiếp tục flow đầy đủ trong app.
-          </p>
         </div>
         <div className="feature-grid">
           {features.map((feature) => (
