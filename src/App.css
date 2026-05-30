@@ -93,7 +93,7 @@ main {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
-  align-items: end;
+  align-items: center;
   gap: 36px;
   min-height: 650px;
   padding: 150px max(24px, calc((100vw - 1120px) / 2)) 58px;
@@ -142,7 +142,7 @@ h1 {
   max-width: 700px;
   margin-bottom: 18px;
   color: var(--white);
-  font-size: clamp(2.8rem, 4.9vw, 5rem);
+  font-size: clamp(2.4rem, 4vw, 4.2rem);
   line-height: 1.08;
   font-weight: 800;
   letter-spacing: -0.018em;
@@ -203,8 +203,11 @@ h3 {
 .primary-btn {
   min-height: 48px;
   padding: 0 20px;
-  color: var(--white);
-  background: var(--ink);
+  color: var(--ink);
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  background: rgba(255, 249, 245, 0.82);
+  box-shadow: 0 14px 34px rgba(25, 52, 71, 0.12);
+  backdrop-filter: blur(14px);
 }
 
 .ghost-btn {
@@ -545,6 +548,81 @@ footer {
   line-height: 1.8;
 }
 
+.news-detail-page {
+  width: min(980px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 132px 0 58px;
+}
+
+.back-button {
+  min-height: 40px;
+  margin-bottom: 16px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+}
+
+.news-detail-hero,
+.news-detail-content {
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 16px 44px rgba(106, 70, 52, 0.1);
+}
+
+.news-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 20px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.news-detail-hero > div {
+  padding: clamp(24px, 5vw, 42px);
+}
+
+.news-detail-hero h1 {
+  max-width: 720px;
+  color: var(--black);
+  font-size: clamp(2.2rem, 4vw, 4rem);
+}
+
+.news-detail-hero p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.news-detail-hero span {
+  display: inline-flex;
+  margin-top: 14px;
+  color: var(--espresso);
+  font-weight: 850;
+}
+
+.news-detail-hero img {
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+  object-fit: cover;
+}
+
+.news-detail-content {
+  margin-top: 18px;
+  padding: clamp(24px, 5vw, 42px);
+}
+
+.news-detail-content p {
+  color: var(--black);
+  font-size: 1.04rem;
+  line-height: 1.86;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -760,6 +838,7 @@ footer {
 }
 
 @media (max-width: 980px) {
+
   .hero-section,
   .download-panel {
     grid-template-columns: 1fr;
@@ -882,6 +961,10 @@ footer {
     grid-template-columns: 1fr;
   }
 
+  .news-detail-hero {
+    grid-template-columns: 1fr;
+  }
+
   .admin-layout {
     grid-template-columns: 1fr;
   }
@@ -896,6 +979,7 @@ footer {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

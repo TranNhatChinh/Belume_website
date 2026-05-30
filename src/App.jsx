@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  BookOpenText,
   Camera,
   CheckCircle2,
   Download,
@@ -107,6 +106,7 @@ function App() {
   const [page, setPage] = useState(() => {
     if (window.location.pathname === '/about') return 'about'
     if (window.location.pathname === '/admin/news') return 'admin-news'
+    if (window.location.pathname.startsWith('/news/')) return 'news-detail'
     return 'home'
   })
   const [authState, setAuthState] = useState({
@@ -143,6 +143,7 @@ function App() {
     const onPopState = () => {
       if (window.location.pathname === '/about') setPage('about')
       else if (window.location.pathname === '/admin/news') setPage('admin-news')
+      else if (window.location.pathname.startsWith('/news/')) setPage('news-detail')
       else setPage('home')
     }
     window.addEventListener('popstate', onPopState)
@@ -186,6 +187,7 @@ function App() {
   const goHome = (hash = '') => navigate('home', '/', hash)
   const goAbout = () => navigate('about', '/about')
   const goAdminNews = () => navigate('admin-news', '/admin/news')
+  const goNewsDetail = (slug) => navigate('news-detail', `/news/${slug}`)
 
   const logout = async () => {
     await logoutFirebase()
@@ -201,6 +203,7 @@ function App() {
           goAbout={goAbout}
           goAdminNews={goAdminNews}
           goHome={goHome}
+          goNewsDetail={goNewsDetail}
           isAdmin={isAdmin}
           logout={logout}
           openLogin={() => setLoginOpen(true)}
@@ -218,6 +221,25 @@ function App() {
           goAbout={goAbout}
           goAdminNews={goAdminNews}
           goHome={goHome}
+          goNewsDetail={goNewsDetail}
+          isAdmin={isAdmin}
+          logout={logout}
+          openLogin={() => setLoginOpen(true)}
+        />
+        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      </>
+    )
+  }
+
+  if (page === 'news-detail') {
+    return (
+      <>
+        <NewsDetailPage
+          authState={authState}
+          goAbout={goAbout}
+          goAdminNews={goAdminNews}
+          goHome={goHome}
+          goNewsDetail={goNewsDetail}
           isAdmin={isAdmin}
           logout={logout}
           openLogin={() => setLoginOpen(true)}
@@ -234,6 +256,7 @@ function App() {
         goAbout={goAbout}
         goAdminNews={goAdminNews}
         goHome={goHome}
+        goNewsDetail={goNewsDetail}
         isAdmin={isAdmin}
         logout={logout}
         openLogin={() => setLoginOpen(true)}
@@ -241,15 +264,12 @@ function App() {
 
       <section className="hero-section" id="home">
         <div className="hero-copy">
-          <p className="eyebrow">BeautyCenter AI</p>
-          <h1>Chuyên gia làm đẹp AI của riêng bạn</h1>
+          <h1>Chuyên gia chăm sóc da của riêng bạn</h1>
           <div className="hero-actions">
             <a className="primary-btn" href={appLink}>
               Truy cập ứng dụng <ArrowRight size={18} />
             </a>
-            <a className="ghost-btn" href="#news">
-              Đọc blogs/news <BookOpenText size={18} />
-            </a>
+
           </div>
         </div>
 
@@ -314,7 +334,9 @@ function App() {
                   <span>{post.category || 'Chăm sóc da'}</span>
                   <h3>{post.title}</h3>
                   <p>{post.summary}</p>
-                  <button type="button">Đọc bài viết</button>
+                  <button type="button" onClick={() => goNewsDetail(post.slug)}>
+                    Đọc bài viết
+                  </button>
                 </div>
               </article>
             ))}
@@ -378,18 +400,18 @@ function SiteNav({
         <img src={logoImg} alt="" />
       </button>
       <nav>
-        <button type="button" onClick={() => goHome('#features')}>
-          Tính năng
-        </button>
-        <button type="button" onClick={() => goHome('#news')}>
-          Blogs/News
-        </button>
         <button
           type="button"
           className={active === 'about' ? 'is-active' : undefined}
           onClick={goAbout}
         >
-          About us
+          Giới thiệu
+        </button>
+        <button type="button" onClick={() => goHome('#features')}>
+          Tính năng
+        </button>
+        <button type="button" onClick={() => goHome('#news')}>
+          Blogs/News
         </button>
         {isAdmin && (
           <button
@@ -511,6 +533,77 @@ function AboutPage(props) {
       </article>
     </main>
   )
+}
+
+function NewsDetailPage(props) {
+  const [post, setPost] = useState(null)
+  const [state, setState] = useState({ loading: true, error: '' })
+  const slug = decodeURIComponent(window.location.pathname.replace('/news/', ''))
+
+  useEffect(() => {
+    let ignore = false
+    async function loadDetail() {
+      setState({ loading: true, error: '' })
+      try {
+        const data = await apiFetch(`/news/${slug}`)
+        if (!ignore) {
+          setPost(data)
+          setState({ loading: false, error: '' })
+        }
+      } catch (err) {
+        if (!ignore) {
+          setState({
+            loading: false,
+            error: err.message || 'Không tải được bài viết.',
+          })
+        }
+      }
+    }
+    loadDetail()
+    return () => {
+      ignore = true
+    }
+  }, [slug])
+
+  return (
+    <main>
+      <SiteNav {...props} />
+      <article className="news-detail-page">
+        <button className="back-button" type="button" onClick={() => props.goHome('#news')}>
+          Quay lại Blogs/News
+        </button>
+        {state.loading && <p className="section-note">Đang tải bài viết...</p>}
+        {state.error && <p className="form-error">{state.error}</p>}
+        {post && (
+          <>
+            <header className="news-detail-hero">
+              <div>
+                <p className="eyebrow">{post.category || 'Blogs / News'}</p>
+                <h1>{post.title}</h1>
+                <p>{post.summary}</p>
+                <span>
+                  {post.author || 'Belumi Team'} · {post.viewCount ?? 0} lượt xem
+                </span>
+              </div>
+              {post.coverImageUrl && <img src={post.coverImageUrl} alt="" />}
+            </header>
+            <section className="news-detail-content">
+              {formatNewsContent(post.content).map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </section>
+          </>
+        )}
+      </article>
+    </main>
+  )
+}
+
+function formatNewsContent(content = '') {
+  return content
+    .split(/\n{2,}|\r\n{2,}/)
+    .map((line) => line.trim())
+    .filter(Boolean)
 }
 
 function AdminNewsPage(props) {
