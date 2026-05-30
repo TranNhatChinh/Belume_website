@@ -75,22 +75,23 @@ const aboutSections = [
   {
     title: 'Cách chúng tôi xây dựng nội dung',
     body: [
-      'Các nội dung trên website được tổng hợp, chọn lọc và trình bày theo hướng dễ hiểu cho người dùng phổ thông. Chúng tôi cố gắng diễn giải các khái niệm chăm sóc da một cách rõ ràng, tránh dùng quá nhiều thuật ngữ khó hiểu.',
-      'Mỗi làn da là khác nhau. Một sản phẩm, thành phần hoặc quy trình phù hợp với người này chưa chắc sẽ phù hợp với người khác, vì vậy nội dung trên website nên được xem là nguồn tham khảo.',
+      'Các nội dung trên website được tổng hợp, chọn lọc và trình bày theo hướng dễ hiểu cho người dùng phổ thông. Chúng tôi cố gắng diễn giải các khái niệm chăm sóc da một cách rõ ràng, tránh dùng quá nhiều thuật ngữ khó hiểu và giúp người dùng có thêm cơ sở khi tìm hiểu về sản phẩm hoặc quy trình chăm sóc da.',
+      'Tuy nhiên, mỗi làn da có đặc điểm, tình trạng và mức độ nhạy cảm khác nhau. Một sản phẩm, thành phần hoặc quy trình phù hợp với người này chưa chắc sẽ phù hợp với người khác. Vì vậy, nội dung trên website chỉ nên được xem là nguồn thông tin tham khảo, không phải kết luận tuyệt đối cho mọi trường hợp.',
     ],
   },
   {
     title: 'Vai trò của website',
     body: [
-      'Website này không phải là cơ sở khám chữa bệnh và không cung cấp dịch vụ chẩn đoán, điều trị hoặc tư vấn y khoa cá nhân.',
-      'Với các tình trạng như mụn viêm nặng, kích ứng kéo dài, dị ứng, viêm da hoặc tổn thương da, người dùng nên tham khảo ý kiến bác sĩ da liễu trước khi áp dụng sản phẩm hoặc quy trình chăm sóc da.',
+      'Website này không phải là cơ sở khám chữa bệnh và không cung cấp dịch vụ chẩn đoán, điều trị, kê đơn hoặc tư vấn y khoa cá nhân. Nội dung trên website không nhằm thay thế cho việc thăm khám, chẩn đoán hoặc tư vấn trực tiếp từ bác sĩ da liễu hay chuyên gia y tế có chuyên môn.',
+      'Các thông tin, gợi ý hoặc nội dung liên quan đến chăm sóc da trên website chỉ mang tính chất tham khảo chung. Website không cam kết rằng một sản phẩm, thành phần hoặc quy trình chăm sóc da sẽ phù hợp hoặc mang lại hiệu quả giống nhau cho tất cả người dùng.',
+      'Với các tình trạng như mụn viêm nặng, kích ứng kéo dài, dị ứng, viêm da, tổn thương da, da đau rát bất thường hoặc bất kỳ vấn đề da liễu nghiêm trọng nào, người dùng nên tham khảo ý kiến bác sĩ da liễu trước khi áp dụng sản phẩm hoặc quy trình chăm sóc da.',
     ],
   },
   {
     title: 'Lưu ý khi sử dụng thông tin',
     body: [
-      'Thông tin trên website được cung cấp nhằm hỗ trợ người dùng tìm hiểu thêm về chăm sóc da và có thêm cơ sở trước khi đưa ra quyết định.',
-      'Người dùng nên đọc kỹ thông tin sản phẩm, kiểm tra thành phần, thử sản phẩm thận trọng và ngưng sử dụng nếu xuất hiện dấu hiệu kích ứng bất thường.',
+      'Thông tin trên website được cung cấp nhằm hỗ trợ người dùng tìm hiểu thêm về chăm sóc da và có thêm cơ sở trước khi đưa ra quyết định. Người dùng nên đọc kỹ thông tin sản phẩm, kiểm tra thành phần, thử sản phẩm trên một vùng da nhỏ trước khi sử dụng rộng rãi và ngưng sử dụng nếu xuất hiện dấu hiệu kích ứng bất thường.',
+      'Mọi quyết định sử dụng sản phẩm, áp dụng quy trình chăm sóc da hoặc thay đổi thói quen chăm sóc da là lựa chọn cá nhân của người dùng. Website chỉ đóng vai trò cung cấp thông tin tham khảo và không chịu trách nhiệm thay cho quyết định sử dụng sản phẩm hoặc phương pháp chăm sóc da của từng cá nhân.',
     ],
   },
   {
