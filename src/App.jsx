@@ -14,6 +14,9 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import rehypeSanitize from 'rehype-sanitize'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import logoImg from './assets/belumi_logo_cropped.png'
 import {
   apiFetch,
@@ -36,6 +39,29 @@ const emptyNews = {
   tags: '',
   author: 'Belumi Team',
   status: 'Published',
+}
+
+const NEWS_STATUS_VALUES = {
+  Draft: 0,
+  Published: 1,
+  Hidden: 2,
+}
+
+const NEWS_STATUS_LABELS = {
+  0: 'Draft',
+  1: 'Published',
+  2: 'Hidden',
+  Draft: 'Draft',
+  Published: 'Published',
+  Hidden: 'Hidden',
+}
+
+function normalizeNewsStatus(status) {
+  return NEWS_STATUS_LABELS[status] || 'Published'
+}
+
+function serializeNewsStatus(status) {
+  return NEWS_STATUS_VALUES[normalizeNewsStatus(status)]
 }
 
 const features = [
@@ -70,6 +96,45 @@ const appCards = [
   'Quét nhãn mỹ phẩm bằng camera',
   'Lưu wishlist và quy trình chăm sóc vào tài khoản',
 ]
+
+const ADMIN_ROLE_VALUES = new Set(['admin', 'administrator', '1'])
+
+function hasAdminRole(appUser, firebaseUser) {
+  const candidates = [
+    appUser?.role,
+    appUser?.Role,
+    appUser?.userRole,
+    appUser?.UserRole,
+    appUser?.roleName,
+    appUser?.RoleName,
+    firebaseUser?.reloadUserInfo?.customAttributes,
+  ]
+
+  if (appUser?.roles && Array.isArray(appUser.roles)) candidates.push(...appUser.roles)
+  if (appUser?.Roles && Array.isArray(appUser.Roles)) candidates.push(...appUser.Roles)
+
+  return candidates.some((value) => {
+    if (value === null || value === undefined) return false
+    if (typeof value === 'object') {
+      return Object.values(value).some((item) =>
+        ADMIN_ROLE_VALUES.has(item?.toString().toLowerCase()),
+      )
+    }
+    return ADMIN_ROLE_VALUES.has(value.toString().trim().toLowerCase())
+  })
+}
+
+function slugify(value = '') {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'd')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 
 const aboutSections = [
   {
@@ -120,7 +185,7 @@ function App() {
   const [publicNews, setPublicNews] = useState([])
   const [newsState, setNewsState] = useState({ loading: true, error: '' })
 
-  const isAdmin = authState.appUser?.role?.toString().toLowerCase() === 'admin'
+  const isAdmin = hasAdminRole(authState.appUser, authState.firebaseUser)
 
   useEffect(() => {
     const unsubscribe = observeAuth(async (firebaseUser) => {
@@ -589,9 +654,7 @@ function NewsDetailPage(props) {
               {post.coverImageUrl && <img src={post.coverImageUrl} alt="" />}
             </header>
             <section className="news-detail-content">
-              {formatNewsContent(post.content).map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
+              <MarkdownContent content={post.content} />
             </section>
           </>
         )}
@@ -600,11 +663,25 @@ function NewsDetailPage(props) {
   )
 }
 
-function formatNewsContent(content = '') {
+function MarkdownContent({ content }) {
+  return (
+    <ReactMarkdown rehypePlugins={[rehypeSanitize]} remarkPlugins={[remarkGfm]}>
+      {normalizeMarkdownContent(content)}
+    </ReactMarkdown>
+  )
+}
+
+function normalizeMarkdownContent(content) {
+  if (!content) return ''
+
+  const hasEscapedNewlines = content.includes('\\n')
+  const hasRealNewlines = content.includes('\n')
+
+  if (hasEscapedNewlines && !hasRealNewlines) {
+    return content.replaceAll('\\n', '\n')
+  }
+
   return content
-    .split(/\n{2,}|\r\n{2,}/)
-    .map((line) => line.trim())
-    .filter(Boolean)
 }
 
 function AdminNewsPage(props) {
@@ -612,6 +689,8 @@ function AdminNewsPage(props) {
   const [news, setNews] = useState([])
   const [selected, setSelected] = useState(null)
   const [form, setForm] = useState(emptyNews)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editorMode, setEditorMode] = useState('write')
   const [status, setStatus] = useState('all')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -645,6 +724,8 @@ function AdminNewsPage(props) {
 
   const editPost = (post) => {
     setSelected(post)
+    setEditorOpen(true)
+    setEditorMode('write')
     setForm({
       title: post.title || '',
       slug: post.slug || '',
@@ -654,7 +735,7 @@ function AdminNewsPage(props) {
       category: post.category || 'Skincare',
       tags: Array.isArray(post.tags) ? post.tags.join(', ') : post.tags || '',
       author: post.author || 'Belumi Team',
-      status: post.status || 'Published',
+      status: normalizeNewsStatus(post.status),
       publishedAt: post.publishedAt || '',
     })
   }
@@ -662,15 +743,33 @@ function AdminNewsPage(props) {
   const resetForm = () => {
     setSelected(null)
     setForm(emptyNews)
+    setEditorMode('write')
+    setEditorOpen(false)
+  }
+
+  const createPost = () => {
+    setSelected(null)
+    setForm(emptyNews)
+    setEditorMode('write')
+    setEditorOpen(true)
   }
 
   const savePost = async (event) => {
     event.preventDefault()
     setMessage('')
     setError('')
+    if (!form.title.trim() || !form.summary.trim() || !form.content.trim()) {
+      setError('Vui lòng nhập đủ Tiêu đề, Tóm tắt và Nội dung trước khi lưu bài viết.')
+      return
+    }
     const payload = {
       ...form,
+      title: form.title.trim(),
+      slug: form.slug.trim() || slugify(form.title),
+      summary: form.summary.trim(),
+      content: form.content.trim(),
       tags: form.tags,
+      status: serializeNewsStatus(form.status),
       publishedAt: form.publishedAt || new Date().toISOString(),
       isActive: form.status !== 'Hidden',
     }
@@ -696,6 +795,15 @@ function AdminNewsPage(props) {
     } catch (err) {
       setError(err.message || 'Không lưu được bài viết.')
     }
+  }
+
+  const updateForm = (name, value) => {
+    setForm((prev) => {
+      if (name === 'title' && (!prev.slug || prev.slug === slugify(prev.title))) {
+        return { ...prev, title: value, slug: slugify(value) }
+      }
+      return { ...prev, [name]: value }
+    })
   }
 
   const deletePost = async (post) => {
@@ -748,47 +856,12 @@ function AdminNewsPage(props) {
           <p className="eyebrow">Trang quản trị</p>
           <h1>Quản lý news</h1>
           <p>Phần này gọi trực tiếp các API admin news hiện có trong backend.</p>
+          <button className="primary-btn admin-create-btn" type="button" onClick={createPost}>
+            Tạo bài viết
+          </button>
         </div>
 
         <div className="admin-layout">
-          <form className="admin-form" onSubmit={savePost}>
-            <div className="admin-form-head">
-              <h2>{selected ? 'Sửa bài viết' : 'Tạo bài viết'}</h2>
-              {selected && (
-                <button type="button" onClick={resetForm}>
-                  Hủy sửa
-                </button>
-              )}
-            </div>
-            <AdminInput label="Tiêu đề" name="title" form={form} setForm={setForm} required />
-            <AdminInput label="Slug" name="slug" form={form} setForm={setForm} />
-            <AdminInput label="Tóm tắt" name="summary" form={form} setForm={setForm} required />
-            <AdminInput label="Ảnh bìa URL" name="coverImageUrl" form={form} setForm={setForm} />
-            <AdminInput label="Danh mục" name="category" form={form} setForm={setForm} required />
-            <AdminInput label="Tags" name="tags" form={form} setForm={setForm} />
-            <label htmlFor="news-status">Trạng thái</label>
-            <select
-              id="news-status"
-              value={form.status}
-              onChange={(event) => setForm((prev) => ({ ...prev, status: event.target.value }))}
-            >
-              <option value="Published">Published</option>
-              <option value="Draft">Draft</option>
-              <option value="Hidden">Hidden</option>
-            </select>
-            <label htmlFor="news-content">Nội dung</label>
-            <textarea
-              id="news-content"
-              value={form.content}
-              onChange={(event) => setForm((prev) => ({ ...prev, content: event.target.value }))}
-              required
-              rows={8}
-            />
-            <button className="primary-btn" type="submit">
-              <Save size={17} /> Lưu bài viết
-            </button>
-          </form>
-
           <div className="admin-list">
             <div className="admin-list-head">
               <h2>Danh sách bài viết</h2>
@@ -806,7 +879,7 @@ function AdminNewsPage(props) {
             {news.map((post) => (
               <article className="admin-news-item" key={post.id}>
                 <div>
-                  <span>{post.status}</span>
+                  <span>{normalizeNewsStatus(post.status)}</span>
                   <h3>{post.title}</h3>
                   <p>{post.summary}</p>
                 </div>
@@ -822,19 +895,137 @@ function AdminNewsPage(props) {
             ))}
           </div>
         </div>
+        {editorOpen && (
+          <div className="modal-backdrop admin-editor-backdrop" role="presentation">
+            <form className="admin-editor-modal" noValidate onSubmit={savePost}>
+              <div className="admin-editor-head">
+                <div>
+                  <p className="eyebrow">Markdown editor</p>
+                  <h2>{selected ? 'Sửa bài viết' : 'Tạo bài viết'}</h2>
+                </div>
+                <button className="modal-close" type="button" onClick={resetForm}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="admin-editor-grid">
+                <div className="admin-meta-fields">
+                  <AdminInput
+                    label="Tiêu đề"
+                    name="title"
+                    form={form}
+                    updateForm={updateForm}
+                    required
+                  />
+                  <AdminInput label="Slug" name="slug" form={form} updateForm={updateForm} />
+                  <AdminInput
+                    label="Tóm tắt"
+                    name="summary"
+                    form={form}
+                    updateForm={updateForm}
+                    required
+                  />
+                  <AdminInput
+                    label="Ảnh bìa URL"
+                    name="coverImageUrl"
+                    form={form}
+                    updateForm={updateForm}
+                  />
+                  <AdminInput
+                    label="Danh mục"
+                    name="category"
+                    form={form}
+                    updateForm={updateForm}
+                    required
+                  />
+                  <AdminInput label="Tags" name="tags" form={form} updateForm={updateForm} />
+                  <label htmlFor="news-status">Trạng thái</label>
+                  <select
+                    id="news-status"
+                    value={form.status}
+                    onChange={(event) => updateForm('status', event.target.value)}
+                  >
+                    <option value="Published">Published</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Hidden">Hidden</option>
+                  </select>
+                </div>
+
+                <div className="admin-content-editor">
+                  <div className="editor-tabs" aria-label="Chế độ soạn thảo">
+                    <button
+                      className={editorMode === 'write' ? 'is-active' : undefined}
+                      type="button"
+                      onClick={() => setEditorMode('write')}
+                    >
+                      Viết Markdown
+                    </button>
+                    <button
+                      className={editorMode === 'preview' ? 'is-active' : undefined}
+                      type="button"
+                      onClick={() => setEditorMode('preview')}
+                    >
+                      Xem trước
+                    </button>
+                  </div>
+                  {editorMode === 'write' ? (
+                    <>
+                      <label htmlFor="news-content">Nội dung</label>
+                      <textarea
+                        id="news-content"
+                        value={form.content}
+                        onChange={(event) => updateForm('content', event.target.value)}
+                        placeholder={'## Section heading\\n\\nWrite **bold**, *italic*, [link](https://example.com), lists, images...'}
+                        required
+                        rows={18}
+                      />
+                      <p className="editor-help">
+                        Markdown supports headings, bold, italic, links, lists, quotes, tables, and images.
+
+                      </p>
+                    </>
+                  ) : (
+                    <article className="markdown-preview">
+                      <header>
+                        <p className="eyebrow">{form.category || 'Blogs / News'}</p>
+                        <h1>{form.title || 'Blog title'}</h1>
+                        {form.summary && <p>{form.summary}</p>}
+                      </header>
+                      {form.coverImageUrl && <img src={form.coverImageUrl} alt="" />}
+                      <MarkdownContent content={form.content || 'No content to preview yet.'} />
+                    </article>
+                  )}
+                </div>
+              </div>
+
+              <div className="admin-editor-actions">
+                <div className="admin-editor-feedback">
+                  {error && <p className="form-error">{error}</p>}
+                  {message && <p className="form-success">{message}</p>}
+                </div>
+                <button type="button" onClick={resetForm}>
+                  Hủy
+                </button>
+                <button className="primary-btn" type="submit">
+                  <Save size={17} /> Lưu bài viết
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </section>
     </main>
   )
 }
 
-function AdminInput({ label, name, form, setForm, required }) {
+function AdminInput({ label, name, form, updateForm, required }) {
   return (
     <>
       <label htmlFor={`news-${name}`}>{label}</label>
       <input
         id={`news-${name}`}
         value={form[name] || ''}
-        onChange={(event) => setForm((prev) => ({ ...prev, [name]: event.target.value }))}
+        onChange={(event) => updateForm(name, event.target.value)}
         required={required}
       />
     </>

@@ -65,7 +65,7 @@ export async function apiFetch(path, options = {}) {
     let message = 'Request failed.'
     try {
       const data = await response.json()
-      message = data.message || data.detail || data.title || message
+      message = formatApiError(data, message)
     } catch {
       message = await response.text()
     }
@@ -75,4 +75,24 @@ export async function apiFetch(path, options = {}) {
   if (response.status === 204) return null
   const text = await response.text()
   return text ? JSON.parse(text) : null
+}
+
+function formatApiError(data, fallback) {
+  const baseMessage = data.message || data.detail || data.title || fallback
+  const validationErrors = data.errors || data.Errors
+
+  if (!validationErrors || typeof validationErrors !== 'object') {
+    return baseMessage
+  }
+
+  const details = Object.entries(validationErrors)
+    .flatMap(([field, errors]) => {
+      const messages = Array.isArray(errors) ? errors : [errors]
+      return messages
+        .filter(Boolean)
+        .map((error) => `${field}: ${String(error)}`)
+    })
+    .join('\n')
+
+  return details ? `${baseMessage}\n${details}` : baseMessage
 }
