@@ -604,7 +604,12 @@ function AboutPage(props) {
 function NewsDetailPage(props) {
   const [post, setPost] = useState(null)
   const [state, setState] = useState({ loading: true, error: '' })
+  const [activeHeading, setActiveHeading] = useState('')
   const slug = decodeURIComponent(window.location.pathname.replace('/news/', ''))
+  const tableOfContents = useMemo(
+    () => extractMarkdownHeadings(post?.content),
+    [post?.content],
+  )
 
   useEffect(() => {
     let ignore = false
@@ -631,6 +636,41 @@ function NewsDetailPage(props) {
     }
   }, [slug])
 
+  useEffect(() => {
+    if (!tableOfContents.length) return undefined
+
+    const headingElements = tableOfContents
+      .map((heading) => document.getElementById(heading.id))
+      .filter(Boolean)
+
+    if (!headingElements.length) return undefined
+
+    setActiveHeading(tableOfContents[0].id)
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+
+        if (visibleEntry?.target?.id) {
+          setActiveHeading(visibleEntry.target.id)
+        }
+      },
+      {
+        rootMargin: '-120px 0px -65% 0px',
+        threshold: 0.01,
+      },
+    )
+
+    headingElements.forEach((heading) => observer.observe(heading))
+    return () => observer.disconnect()
+  }, [tableOfContents])
+
+  const jumpToHeading = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <main>
       <SiteNav {...props} />
@@ -653,9 +693,31 @@ function NewsDetailPage(props) {
               </div>
               {post.coverImageUrl && <img src={post.coverImageUrl} alt="" />}
             </header>
-            <section className="news-detail-content">
-              <MarkdownContent content={post.content} />
-            </section>
+            <div className="news-detail-body">
+              {tableOfContents.length > 0 && (
+                <aside className="news-toc" aria-label="Muc luc bai viet">
+                  <p>Trong bài viết</p>
+                  <nav>
+                    {tableOfContents.map((heading) => (
+                      <button
+                        className={[
+                          activeHeading === heading.id ? 'is-active' : '',
+                          heading.level === 3 ? 'is-nested' : '',
+                        ].filter(Boolean).join(' ')}
+                        type="button"
+                        key={heading.id}
+                        onClick={() => jumpToHeading(heading.id)}
+                      >
+                        {heading.text}
+                      </button>
+                    ))}
+                  </nav>
+                </aside>
+              )}
+              <section className="news-detail-content">
+                <MarkdownContent content={post.content} />
+              </section>
+            </div>
           </>
         )}
       </article>
@@ -664,11 +726,74 @@ function NewsDetailPage(props) {
 }
 
 function MarkdownContent({ content }) {
+  const components = useMemo(
+    () => ({
+      h2: ({ children, ...props }) => (
+        <h2 id={headingIdFromChildren(children)} {...props}>
+          {children}
+        </h2>
+      ),
+      h3: ({ children, ...props }) => (
+        <h3 id={headingIdFromChildren(children)} {...props}>
+          {children}
+        </h3>
+      ),
+    }),
+    [],
+  )
+
   return (
-    <ReactMarkdown rehypePlugins={[rehypeSanitize]} remarkPlugins={[remarkGfm]}>
+    <ReactMarkdown
+      components={components}
+      rehypePlugins={[rehypeSanitize]}
+      remarkPlugins={[remarkGfm]}
+    >
       {normalizeMarkdownContent(content)}
     </ReactMarkdown>
   )
+}
+
+function extractMarkdownHeadings(content) {
+  const normalized = normalizeMarkdownContent(content)
+  const usedIds = new Map()
+
+  return normalized
+    .split('\n')
+    .map((line) => line.match(/^(#{2})\s+(.+)$/))
+    .filter(Boolean)
+    .map((match) => {
+      const level = match[1].length
+      const text = stripMarkdownInline(match[2])
+      const baseId = slugify(text) || 'section'
+      const count = usedIds.get(baseId) || 0
+      usedIds.set(baseId, count + 1)
+      return {
+        level,
+        text,
+        id: count ? `${baseId}-${count + 1}` : baseId,
+      }
+    })
+}
+
+function stripMarkdownInline(value) {
+  return value
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/#+$/, '')
+    .trim()
+}
+
+function headingIdFromChildren(children) {
+  return slugify(flattenReactText(children)) || undefined
+}
+
+function flattenReactText(value) {
+  if (Array.isArray(value)) return value.map(flattenReactText).join('')
+  if (value === null || value === undefined || typeof value === 'boolean') return ''
+  if (typeof value === 'object' && 'props' in value) return flattenReactText(value.props.children)
+  return String(value)
 }
 
 function normalizeMarkdownContent(content) {

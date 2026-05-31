@@ -15,7 +15,7 @@
 }
 
 main {
-  overflow: hidden;
+  overflow: clip;
 }
 
 .nav {
@@ -549,7 +549,7 @@ footer {
 }
 
 .news-detail-page {
-  width: min(980px, calc(100% - 32px));
+  width: min(1220px, calc(100% - 32px));
   margin: 0 auto;
   padding: 132px 0 58px;
 }
@@ -583,7 +583,7 @@ footer {
   overflow: hidden;
 }
 
-.news-detail-hero > div {
+.news-detail-hero>div {
   padding: clamp(24px, 5vw, 42px);
 }
 
@@ -615,6 +615,77 @@ footer {
 .news-detail-content {
   margin-top: 18px;
   padding: clamp(24px, 5vw, 42px);
+}
+
+.news-detail-body {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+  margin-top: 18px;
+}
+
+.news-detail-body .news-detail-content {
+  margin-top: 0;
+}
+
+.news-toc {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 108px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 12px 32px rgba(106, 70, 52, 0.08);
+  backdrop-filter: blur(14px);
+  scrollbar-width: thin;
+  scrollbar-color: var(--sand) transparent;
+}
+
+.news-toc p {
+  margin: 0 0 10px;
+  color: var(--espresso);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.news-toc nav {
+  display: grid;
+  gap: 4px;
+}
+
+.news-toc button {
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.news-toc button:hover,
+.news-toc button.is-active {
+  border-left-color: var(--espresso);
+  background: rgba(166, 126, 104, 0.13);
+  color: var(--ink);
+}
+
+.news-toc button.is-nested {
+  padding-left: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .news-detail-content p {
@@ -981,7 +1052,7 @@ footer {
   line-height: 1.7;
 }
 
-.markdown-preview > img {
+.markdown-preview>img {
   width: 100%;
   max-height: 360px;
   object-fit: cover;
@@ -1225,6 +1296,15 @@ footer {
 
   .news-detail-hero {
     grid-template-columns: 1fr;
+  }
+
+  .news-detail-body {
+    grid-template-columns: 1fr;
+  }
+
+  .news-toc {
+    position: static;
+    max-height: none;
   }
 
   .admin-layout {
