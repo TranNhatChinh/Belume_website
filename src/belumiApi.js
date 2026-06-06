@@ -19,7 +19,8 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 
 export const apiBaseUrl =
-  import.meta.env.VITE_BELUMI_API_BASE_URL || 'https://belumi-be.onrender.com/api'
+  import.meta.env.VITE_BELUMI_API_BASE_URL ||
+  'http://belumi-api.ap-southeast-1.elasticbeanstalk.com/api'
 
 export function observeAuth(callback) {
   return onAuthStateChanged(auth, callback)
@@ -50,7 +51,8 @@ async function syncFirebaseLogin(idToken) {
 }
 
 export async function apiFetch(path, options = {}) {
-  const headers = { 'Content-Type': 'application/json', ...options.headers }
+  const isFormData = options.body instanceof FormData
+  const headers = { ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...options.headers }
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`
   }
@@ -58,7 +60,7 @@ export async function apiFetch(path, options = {}) {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method: options.method || 'GET',
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.body ? (isFormData ? options.body : JSON.stringify(options.body)) : undefined,
   })
 
   if (!response.ok) {

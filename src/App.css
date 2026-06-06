@@ -829,6 +829,13 @@ footer {
   display: block;
 }
 
+.admin-ingredient-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.35fr) minmax(0, 0.65fr);
+  gap: 18px;
+  align-items: start;
+}
+
 .admin-form,
 .admin-list {
   border: 1px solid var(--line);
@@ -845,6 +852,43 @@ footer {
 
 .admin-list {
   padding: 20px;
+}
+
+.admin-import {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-import h2 {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.admin-import button,
+.admin-list-head input {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+}
+
+.admin-import button {
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.admin-list-head input {
+  width: min(340px, 100%);
+  padding: 0 14px;
 }
 
 .admin-form-head,
@@ -909,6 +953,13 @@ footer {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+}
+
+.ingredient-admin-item p:last-child {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .admin-actions {

@@ -41,6 +41,14 @@ const emptyNews = {
   status: 'Published',
 }
 
+const emptyIngredient = {
+  nameInc: '',
+  name: '',
+  category: '',
+  description: '',
+  links: '',
+}
+
 const NEWS_STATUS_VALUES = {
   Draft: 0,
   Published: 1,
@@ -172,6 +180,7 @@ function App() {
   const [page, setPage] = useState(() => {
     if (window.location.pathname === '/about') return 'about'
     if (window.location.pathname === '/admin/news') return 'admin-news'
+    if (window.location.pathname === '/admin/ingredients') return 'admin-ingredients'
     if (window.location.pathname.startsWith('/news/')) return 'news-detail'
     return 'home'
   })
@@ -209,6 +218,7 @@ function App() {
     const onPopState = () => {
       if (window.location.pathname === '/about') setPage('about')
       else if (window.location.pathname === '/admin/news') setPage('admin-news')
+      else if (window.location.pathname === '/admin/ingredients') setPage('admin-ingredients')
       else if (window.location.pathname.startsWith('/news/')) setPage('news-detail')
       else setPage('home')
     }
@@ -253,11 +263,12 @@ function App() {
   const goHome = (hash = '') => navigate('home', '/', hash)
   const goAbout = () => navigate('about', '/about')
   const goAdminNews = () => navigate('admin-news', '/admin/news')
+  const goAdminIngredients = () => navigate('admin-ingredients', '/admin/ingredients')
   const goNewsDetail = (slug) => navigate('news-detail', `/news/${slug}`)
 
   const logout = async () => {
     await logoutFirebase()
-    if (page === 'admin-news') goHome()
+    if (page === 'admin-news' || page === 'admin-ingredients') goHome()
   }
 
   if (page === 'about') {
@@ -267,6 +278,7 @@ function App() {
           active="about"
           authState={authState}
           goAbout={goAbout}
+          goAdminIngredients={goAdminIngredients}
           goAdminNews={goAdminNews}
           goHome={goHome}
           goNewsDetail={goNewsDetail}
@@ -285,6 +297,26 @@ function App() {
         <AdminNewsPage
           authState={authState}
           goAbout={goAbout}
+          goAdminIngredients={goAdminIngredients}
+          goAdminNews={goAdminNews}
+          goHome={goHome}
+          goNewsDetail={goNewsDetail}
+          isAdmin={isAdmin}
+          logout={logout}
+          openLogin={() => setLoginOpen(true)}
+        />
+        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      </>
+    )
+  }
+
+  if (page === 'admin-ingredients') {
+    return (
+      <>
+        <AdminIngredientsPage
+          authState={authState}
+          goAbout={goAbout}
+          goAdminIngredients={goAdminIngredients}
           goAdminNews={goAdminNews}
           goHome={goHome}
           goNewsDetail={goNewsDetail}
@@ -303,6 +335,7 @@ function App() {
         <NewsDetailPage
           authState={authState}
           goAbout={goAbout}
+          goAdminIngredients={goAdminIngredients}
           goAdminNews={goAdminNews}
           goHome={goHome}
           goNewsDetail={goNewsDetail}
@@ -320,6 +353,7 @@ function App() {
       <SiteNav
         authState={authState}
         goAbout={goAbout}
+        goAdminIngredients={goAdminIngredients}
         goAdminNews={goAdminNews}
         goHome={goHome}
         goNewsDetail={goNewsDetail}
@@ -451,6 +485,7 @@ function SiteNav({
   goHome,
   goAbout,
   goAdminNews,
+  goAdminIngredients,
   isAdmin,
   logout,
   openLogin,
@@ -480,13 +515,22 @@ function SiteNav({
           Blogs/News
         </button>
         {isAdmin && (
-          <button
-            type="button"
-            className={active === 'admin-news' ? 'is-active' : undefined}
-            onClick={goAdminNews}
-          >
-            Trang quản trị
-          </button>
+          <>
+            <button
+              type="button"
+              className={active === 'admin-news' ? 'is-active' : undefined}
+              onClick={goAdminNews}
+            >
+              News
+            </button>
+            <button
+              type="button"
+              className={active === 'admin-ingredients' ? 'is-active' : undefined}
+              onClick={goAdminIngredients}
+            >
+              Ingredients
+            </button>
+          </>
         )}
         {authState.appUser ? (
           <button type="button" onClick={logout}>
@@ -1140,6 +1184,255 @@ function AdminNewsPage(props) {
         )}
       </section>
     </main>
+  )
+}
+
+function AdminIngredientsPage(props) {
+  const { authState, isAdmin, openLogin } = props
+  const [ingredients, setIngredients] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [form, setForm] = useState(emptyIngredient)
+  const [search, setSearch] = useState('')
+  const [csvFile, setCsvFile] = useState(null)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const loadIngredients = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const params = new URLSearchParams({ page: '1', pageSize: '50' })
+      if (search.trim()) params.set('search', search.trim())
+      const data = await apiFetch(`/ingredients?${params.toString()}`)
+      setIngredients(data?.items || [])
+    } catch (err) {
+      setError(err.message || 'Không tải được ingredients.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(loadIngredients, 250)
+    return () => window.clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
+
+  const resetForm = () => {
+    setSelected(null)
+    setForm(emptyIngredient)
+  }
+
+  const editIngredient = (ingredient) => {
+    setSelected(ingredient)
+    setForm({
+      nameInc: ingredient.nameInc || ingredient.name_inc || '',
+      name: ingredient.name || '',
+      category: ingredient.category || '',
+      description: ingredient.description || '',
+      links: ingredient.links || '',
+    })
+  }
+
+  const saveIngredient = async (event) => {
+    event.preventDefault()
+    setMessage('')
+    setError('')
+    setSaving(true)
+    try {
+      const path = selected ? `/ingredients/${selected.id}` : '/ingredients'
+      await apiFetch(path, {
+        method: selected ? 'PUT' : 'POST',
+        token: authState.token,
+        body: {
+          nameInc: form.nameInc.trim(),
+          name: form.name.trim(),
+          category: form.category.trim(),
+          description: form.description.trim(),
+          links: form.links.trim(),
+        },
+      })
+      setMessage(selected ? 'Đã cập nhật ingredient.' : 'Đã tạo ingredient.')
+      resetForm()
+      await loadIngredients()
+    } catch (err) {
+      setError(err.message || 'Không lưu được ingredient.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteIngredient = async (ingredient) => {
+    if (!window.confirm(`Xóa ingredient "${ingredient.nameInc || ingredient.name}"?`)) return
+    setMessage('')
+    setError('')
+    try {
+      await apiFetch(`/ingredients/${ingredient.id}`, {
+        method: 'DELETE',
+        token: authState.token,
+      })
+      setMessage('Đã xóa ingredient.')
+      await loadIngredients()
+    } catch (err) {
+      setError(err.message || 'Không xóa được ingredient.')
+    }
+  }
+
+  const importCsv = async (event) => {
+    event.preventDefault()
+    if (!csvFile) {
+      setError('Chọn file CSV trước khi import.')
+      return
+    }
+    setMessage('')
+    setError('')
+    setSaving(true)
+    try {
+      const body = new FormData()
+      body.append('file', csvFile)
+      const result = await apiFetch('/admin/ingredients/import-csv', {
+        method: 'POST',
+        token: authState.token,
+        body,
+      })
+      setMessage(
+        `Import xong: ${result.created} tạo mới, ${result.updated} cập nhật, ${result.skipped} bỏ qua.`,
+      )
+      setCsvFile(null)
+      await loadIngredients()
+    } catch (err) {
+      setError(err.message || 'Import CSV thất bại.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!authState.loading && !authState.appUser) {
+    return (
+      <main>
+        <SiteNav {...props} active="admin-ingredients" />
+        <section className="admin-page admin-empty">
+          <h1>Đăng nhập để vào trang quản trị</h1>
+          <button className="primary-btn" type="button" onClick={openLogin}>
+            Đăng nhập
+          </button>
+        </section>
+      </main>
+    )
+  }
+
+  if (!authState.loading && !isAdmin) {
+    return (
+      <main>
+        <SiteNav {...props} active="admin-ingredients" />
+        <section className="admin-page admin-empty">
+          <h1>Bạn không có quyền truy cập trang quản trị</h1>
+          <p>Tài khoản hiện tại không có role Admin.</p>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main>
+      <SiteNav {...props} active="admin-ingredients" />
+      <section className="admin-page">
+        <div className="admin-header">
+          <p className="eyebrow">Ingredient database</p>
+          <h1>Quản lý ingredients</h1>
+          <p>Tra cứu, tạo, sửa, xóa và import CSV ingredient từ backend server.</p>
+        </div>
+
+        <div className="admin-layout admin-ingredient-layout">
+          <form className="admin-form" onSubmit={saveIngredient}>
+            <div className="admin-form-head">
+              <h2>{selected ? 'Sửa ingredient' : 'Tạo ingredient'}</h2>
+              {selected && (
+                <button type="button" onClick={resetForm}>
+                  Hủy sửa
+                </button>
+              )}
+            </div>
+            <IngredientInput label="INCI" name="nameInc" form={form} setForm={setForm} required />
+            <IngredientInput label="Tên hiển thị" name="name" form={form} setForm={setForm} required />
+            <IngredientInput label="Category" name="category" form={form} setForm={setForm} required />
+            <label htmlFor="ingredient-description">Description</label>
+            <textarea
+              id="ingredient-description"
+              rows={7}
+              value={form.description}
+              onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+              required
+            />
+            <IngredientInput label="Links" name="links" form={form} setForm={setForm} required />
+            <button className="primary-btn" disabled={saving} type="submit">
+              <Save size={17} /> {saving ? 'Đang lưu...' : 'Lưu ingredient'}
+            </button>
+          </form>
+
+          <div className="admin-list">
+            <form className="admin-import" onSubmit={importCsv}>
+              <h2>Import CSV</h2>
+              <input
+                accept=".csv,text/csv"
+                onChange={(event) => setCsvFile(event.target.files?.[0] || null)}
+                type="file"
+              />
+              <button disabled={saving || !csvFile} type="submit">
+                Import
+              </button>
+            </form>
+
+            <div className="admin-list-head">
+              <h2>Danh sách</h2>
+              <input
+                placeholder="Tìm INCI, tên, category..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+            {loading && <p>Đang tải...</p>}
+            {message && <p className="form-success">{message}</p>}
+            {error && <p className="form-error">{error}</p>}
+            {!loading && ingredients.length === 0 && <p>Chưa có ingredient phù hợp.</p>}
+            {ingredients.map((ingredient) => (
+              <article className="admin-news-item ingredient-admin-item" key={ingredient.id}>
+                <div>
+                  <span>{ingredient.category}</span>
+                  <h3>{ingredient.nameInc}</h3>
+                  <p>{ingredient.name}</p>
+                  <p>{ingredient.description}</p>
+                </div>
+                <div className="admin-actions">
+                  <button type="button" onClick={() => editIngredient(ingredient)}>
+                    <FileText size={16} /> Sửa
+                  </button>
+                  <button type="button" onClick={() => deleteIngredient(ingredient)}>
+                    <Trash2 size={16} /> Xóa
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function IngredientInput({ label, name, form, setForm, required }) {
+  return (
+    <>
+      <label htmlFor={`ingredient-${name}`}>{label}</label>
+      <input
+        id={`ingredient-${name}`}
+        value={form[name] || ''}
+        onChange={(event) => setForm((prev) => ({ ...prev, [name]: event.target.value }))}
+        required={required}
+      />
+    </>
   )
 }
 
