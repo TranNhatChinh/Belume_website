@@ -93,7 +93,7 @@ main {
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 30;
+  z-index: 100;
   display: grid;
   justify-items: end;
   gap: 12px;

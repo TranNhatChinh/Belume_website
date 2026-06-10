@@ -601,7 +601,8 @@ function SiteNav({
   }
 
   return (
-    <header className="nav" aria-label="Belumi navigation">
+    <>
+      <header className="nav" aria-label="Belumi navigation">
       <button
         className="brand"
         type="button"
@@ -659,6 +660,7 @@ function SiteNav({
           </button>
         )}
       </nav>
+      </header>
       {active !== 'chat' && (
         <div className="chat-widget">
           {chatOpen && (
@@ -713,7 +715,7 @@ function SiteNav({
           </button>
         </div>
       )}
-    </header>
+    </>
   )
 }
 
