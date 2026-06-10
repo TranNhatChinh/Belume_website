@@ -584,14 +584,7 @@ function SiteNav({
           className={active === 'ingredients' ? 'is-active' : undefined}
           onClick={goIngredients}
         >
-          Ingredient
-        </button>
-        <button
-          type="button"
-          className={active === 'chat' ? 'is-active' : undefined}
-          onClick={goChat}
-        >
-          Chatbot
+          Tra cứu thành phần
         </button>
         {isAdmin && (
           <>
@@ -621,6 +614,17 @@ function SiteNav({
           </button>
         )}
       </nav>
+      {active !== 'chat' && (
+        <button
+          className="chat-fab"
+          type="button"
+          onClick={goChat}
+          aria-label="Mở chatbot"
+          title="Chatbot"
+        >
+          <MessageCircle size={22} />
+        </button>
+      )}
     </header>
   )
 }

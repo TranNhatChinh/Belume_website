@@ -89,6 +89,28 @@ main {
   background: rgba(255, 255, 255, 0.28);
 }
 
+.chat-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+  color: var(--white);
+  background: var(--ink);
+  box-shadow: 0 18px 40px rgba(25, 52, 71, 0.22);
+}
+
+.chat-fab:hover,
+.chat-fab:focus-visible {
+  color: var(--white);
+  background: var(--espresso);
+  transform: translateY(-2px);
+}
+
 .hero-section {
   position: relative;
   display: grid;
