@@ -20,7 +20,7 @@ export const auth = getAuth(app)
 
 export const apiBaseUrl =
   import.meta.env.VITE_BELUMI_API_BASE_URL ||
-  'http://belumi-api.ap-southeast-1.elasticbeanstalk.com/api'
+  'https://api.belumi.site/api'
 
 export function observeAuth(callback) {
   return onAuthStateChanged(auth, callback)
