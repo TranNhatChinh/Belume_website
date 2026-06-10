@@ -704,15 +704,17 @@ function SiteNav({
               </form>
             </section>
           )}
-          <button
-            className="chat-fab"
-            type="button"
-            onClick={() => setChatOpen((value) => !value)}
-            aria-label={chatOpen ? 'Đóng chatbot' : 'Mở chatbot'}
-            title="Chatbot"
-          >
-            {chatOpen ? <X size={22} /> : <MessageCircle size={22} />}
-          </button>
+          {!chatOpen && (
+            <button
+              className="chat-fab"
+              type="button"
+              onClick={() => setChatOpen(true)}
+              aria-label="Mở chatbot"
+              title="Chatbot"
+            >
+              <MessageCircle size={22} />
+            </button>
+          )}
         </div>
       )}
     </>
