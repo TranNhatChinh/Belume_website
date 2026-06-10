@@ -554,7 +554,7 @@ function SiteNav({
   logout,
   openLogin,
 }) {
-  const [chatOpen, setChatOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(active !== 'chat')
   const [widgetMessages, setWidgetMessages] = useState([
     {
       role: 'assistant',
