@@ -547,7 +547,6 @@ function SiteNav({
   authState,
   goHome,
   goAbout,
-  goChat,
   goIngredients,
   goAdminNews,
   goAdminIngredients,
@@ -555,6 +554,52 @@ function SiteNav({
   logout,
   openLogin,
 }) {
+  const [chatOpen, setChatOpen] = useState(false)
+  const [widgetMessages, setWidgetMessages] = useState([
+    {
+      role: 'assistant',
+      content:
+        'Chào bạn, mình là Belumi chatbot. Mình có thể hỗ trợ về routine, loại da và thành phần mỹ phẩm.',
+    },
+  ])
+  const [widgetInput, setWidgetInput] = useState('')
+  const [widgetLoading, setWidgetLoading] = useState(false)
+  const [widgetError, setWidgetError] = useState('')
+
+  const sendWidgetMessage = async (event) => {
+    event.preventDefault()
+    const text = widgetInput.trim()
+    if (!text || widgetLoading) return
+
+    setWidgetMessages((prev) => [...prev, { role: 'user', content: text }])
+    setWidgetInput('')
+    setWidgetLoading(true)
+    setWidgetError('')
+
+    try {
+      const data = await apiFetch('/chatbot/message', {
+        method: 'POST',
+        body: { message: text, skinType: null },
+      })
+      setWidgetMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: data?.answer || 'Mình chưa có câu trả lời cho câu hỏi này.',
+          sources: data?.sources || [],
+        },
+      ])
+    } catch (err) {
+      setWidgetError(err.message || 'Không gửi được tin nhắn.')
+      setWidgetMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'Có lỗi khi gọi chatbot. Bạn thử lại sau nhé.' },
+      ])
+    } finally {
+      setWidgetLoading(false)
+    }
+  }
+
   return (
     <header className="nav" aria-label="Belumi navigation">
       <button
@@ -615,15 +660,58 @@ function SiteNav({
         )}
       </nav>
       {active !== 'chat' && (
-        <button
-          className="chat-fab"
-          type="button"
-          onClick={goChat}
-          aria-label="Mở chatbot"
-          title="Chatbot"
-        >
-          <MessageCircle size={22} />
-        </button>
+        <div className="chat-widget">
+          {chatOpen && (
+            <section className="chat-widget-window" aria-label="Belumi chatbot">
+              <div className="chat-widget-head">
+                <button type="button" onClick={() => setChatOpen(false)} aria-label="Đóng chatbot">
+                  <X size={17} />
+                </button>
+                <span>
+                  <MessageCircle size={18} />
+                  Belumi Chatbot
+                </span>
+              </div>
+              <div className="chat-widget-body">
+                {widgetMessages.map((message, index) => (
+                  <article className={`chat-widget-bubble ${message.role}`} key={`${message.role}-${index}`}>
+                    <MarkdownContent content={message.content} />
+                    {message.sources?.length > 0 && (
+                      <div className="chat-widget-sources">
+                        {message.sources.map((source) => (
+                          <a href={source.url || '#'} key={`${source.label}-${source.url}`} target="_blank" rel="noreferrer">
+                            {source.label}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                ))}
+                {widgetLoading && <p className="chat-widget-status">Đang trả lời...</p>}
+                {widgetError && <p className="chat-widget-error">{widgetError}</p>}
+              </div>
+              <form className="chat-widget-input" onSubmit={sendWidgetMessage}>
+                <input
+                  placeholder="Nhập tin nhắn..."
+                  value={widgetInput}
+                  onChange={(event) => setWidgetInput(event.target.value)}
+                />
+                <button type="submit" disabled={widgetLoading || !widgetInput.trim()} aria-label="Gửi tin nhắn">
+                  <Send size={17} />
+                </button>
+              </form>
+            </section>
+          )}
+          <button
+            className="chat-fab"
+            type="button"
+            onClick={() => setChatOpen((value) => !value)}
+            aria-label={chatOpen ? 'Đóng chatbot' : 'Mở chatbot'}
+            title="Chatbot"
+          >
+            {chatOpen ? <X size={22} /> : <MessageCircle size={22} />}
+          </button>
+        </div>
       )}
     </header>
   )
