@@ -258,6 +258,255 @@ h3 {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.tool-page {
+  min-height: 100vh;
+  padding: 132px max(20px, calc((100vw - 1120px) / 2)) 72px;
+  background:
+    linear-gradient(180deg, rgba(255, 249, 245, 0.92), rgba(255, 255, 255, 0.98)),
+    radial-gradient(circle at 80% 8%, rgba(231, 181, 170, 0.28), transparent 32%);
+}
+
+.tool-hero {
+  max-width: 760px;
+  margin-bottom: 28px;
+}
+
+.tool-hero h1 {
+  color: var(--black);
+}
+
+.tool-hero p {
+  max-width: 680px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.chat-shell,
+.ingredient-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.chat-side,
+.chat-window,
+.ingredient-search-panel,
+.ingredient-detail-panel,
+.ingredient-scan-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 46px rgba(106, 70, 52, 0.08);
+}
+
+.chat-side {
+  padding: 22px;
+}
+
+.chat-side svg {
+  color: var(--caramel);
+}
+
+.chat-side h2,
+.ingredient-detail-panel h2,
+.ingredient-scan-panel h2 {
+  font-size: 1.45rem;
+}
+
+.chat-side label {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+  color: var(--espresso);
+  font-weight: 900;
+}
+
+.chat-side select,
+.chat-input input,
+.search-box input,
+.ingredient-scan-panel textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--black);
+  font: inherit;
+}
+
+.chat-side select {
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.chat-window {
+  display: flex;
+  min-height: 580px;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  overflow: auto;
+}
+
+.chat-bubble {
+  max-width: min(760px, 86%);
+  padding: 14px 16px;
+  border-radius: 8px;
+  line-height: 1.6;
+}
+
+.chat-bubble.user {
+  align-self: flex-end;
+  color: var(--white);
+  background: var(--ink);
+}
+
+.chat-bubble.assistant {
+  align-self: flex-start;
+  color: var(--black);
+  background: var(--cream);
+  border: 1px solid var(--line);
+}
+
+.chat-bubble p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chat-sources a {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.chat-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 249, 245, 0.78);
+}
+
+.chat-input input {
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+.ingredient-layout {
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+}
+
+.ingredient-search-panel,
+.ingredient-detail-panel,
+.ingredient-scan-panel {
+  padding: 18px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  color: var(--caramel);
+}
+
+.search-box input {
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+.ingredient-results {
+  display: grid;
+  gap: 10px;
+}
+
+.ingredient-result {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 14px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  cursor: pointer;
+}
+
+.ingredient-result:hover,
+.ingredient-result.is-active {
+  border-color: var(--caramel);
+  box-shadow: 0 10px 28px rgba(106, 70, 52, 0.12);
+}
+
+.ingredient-result span,
+.ingredient-detail-panel span {
+  color: var(--caramel);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ingredient-result strong {
+  color: var(--black);
+  font-size: 1rem;
+}
+
+.ingredient-result small,
+.ingredient-detail-panel p,
+.ingredient-scan-panel p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.ingredient-detail-panel {
+  min-height: 320px;
+}
+
+.ingredient-detail-panel a {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.ingredient-scan-panel {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.ingredient-scan-panel form {
+  display: grid;
+  gap: 12px;
+}
+
+.ingredient-scan-panel textarea {
+  min-height: 140px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.scan-result {
+  grid-column: 1 / -1;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--cream);
+  color: var(--black);
+}
+
 .hero-card {
   display: grid;
   gap: 10px;
@@ -1241,6 +1490,12 @@ footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .chat-shell,
+  .ingredient-layout,
+  .ingredient-scan-panel {
+    grid-template-columns: 1fr;
+  }
+
   .news-card:first-child {
     grid-row: auto;
   }
@@ -1339,6 +1594,22 @@ footer {
 
   .about-page {
     padding-top: 106px;
+  }
+
+  .tool-page {
+    padding-top: 112px;
+  }
+
+  .chat-window {
+    min-height: 520px;
+  }
+
+  .chat-input {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-bubble {
+    max-width: 100%;
   }
 
   .about-focus ul {

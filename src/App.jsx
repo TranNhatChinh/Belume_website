@@ -6,9 +6,12 @@ import {
   FileText,
   Heart,
   LockKeyhole,
+  MessageCircle,
   Palette,
   Save,
   ScanText,
+  Search,
+  Send,
   Sparkles,
   Trash2,
   X,
@@ -179,6 +182,8 @@ const aboutSections = [
 function App() {
   const [page, setPage] = useState(() => {
     if (window.location.pathname === '/about') return 'about'
+    if (window.location.pathname === '/chat') return 'chat'
+    if (window.location.pathname === '/ingredients') return 'ingredients'
     if (window.location.pathname === '/admin/news') return 'admin-news'
     if (window.location.pathname === '/admin/ingredients') return 'admin-ingredients'
     if (window.location.pathname.startsWith('/news/')) return 'news-detail'
@@ -217,6 +222,8 @@ function App() {
   useEffect(() => {
     const onPopState = () => {
       if (window.location.pathname === '/about') setPage('about')
+      else if (window.location.pathname === '/chat') setPage('chat')
+      else if (window.location.pathname === '/ingredients') setPage('ingredients')
       else if (window.location.pathname === '/admin/news') setPage('admin-news')
       else if (window.location.pathname === '/admin/ingredients') setPage('admin-ingredients')
       else if (window.location.pathname.startsWith('/news/')) setPage('news-detail')
@@ -262,6 +269,8 @@ function App() {
 
   const goHome = (hash = '') => navigate('home', '/', hash)
   const goAbout = () => navigate('about', '/about')
+  const goChat = () => navigate('chat', '/chat')
+  const goIngredients = () => navigate('ingredients', '/ingredients')
   const goAdminNews = () => navigate('admin-news', '/admin/news')
   const goAdminIngredients = () => navigate('admin-ingredients', '/admin/ingredients')
   const goNewsDetail = (slug) => navigate('news-detail', `/news/${slug}`)
@@ -278,6 +287,8 @@ function App() {
           active="about"
           authState={authState}
           goAbout={goAbout}
+          goChat={goChat}
+          goIngredients={goIngredients}
           goAdminIngredients={goAdminIngredients}
           goAdminNews={goAdminNews}
           goHome={goHome}
@@ -297,6 +308,8 @@ function App() {
         <AdminNewsPage
           authState={authState}
           goAbout={goAbout}
+          goChat={goChat}
+          goIngredients={goIngredients}
           goAdminIngredients={goAdminIngredients}
           goAdminNews={goAdminNews}
           goHome={goHome}
@@ -316,6 +329,8 @@ function App() {
         <AdminIngredientsPage
           authState={authState}
           goAbout={goAbout}
+          goChat={goChat}
+          goIngredients={goIngredients}
           goAdminIngredients={goAdminIngredients}
           goAdminNews={goAdminNews}
           goHome={goHome}
@@ -335,6 +350,52 @@ function App() {
         <NewsDetailPage
           authState={authState}
           goAbout={goAbout}
+          goChat={goChat}
+          goIngredients={goIngredients}
+          goAdminIngredients={goAdminIngredients}
+          goAdminNews={goAdminNews}
+          goHome={goHome}
+          goNewsDetail={goNewsDetail}
+          isAdmin={isAdmin}
+          logout={logout}
+          openLogin={() => setLoginOpen(true)}
+        />
+        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      </>
+    )
+  }
+
+  if (page === 'chat') {
+    return (
+      <>
+        <ChatPage
+          active="chat"
+          authState={authState}
+          goAbout={goAbout}
+          goChat={goChat}
+          goIngredients={goIngredients}
+          goAdminIngredients={goAdminIngredients}
+          goAdminNews={goAdminNews}
+          goHome={goHome}
+          goNewsDetail={goNewsDetail}
+          isAdmin={isAdmin}
+          logout={logout}
+          openLogin={() => setLoginOpen(true)}
+        />
+        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      </>
+    )
+  }
+
+  if (page === 'ingredients') {
+    return (
+      <>
+        <IngredientLookupPage
+          active="ingredients"
+          authState={authState}
+          goAbout={goAbout}
+          goChat={goChat}
+          goIngredients={goIngredients}
           goAdminIngredients={goAdminIngredients}
           goAdminNews={goAdminNews}
           goHome={goHome}
@@ -353,6 +414,8 @@ function App() {
       <SiteNav
         authState={authState}
         goAbout={goAbout}
+        goChat={goChat}
+        goIngredients={goIngredients}
         goAdminIngredients={goAdminIngredients}
         goAdminNews={goAdminNews}
         goHome={goHome}
@@ -484,6 +547,8 @@ function SiteNav({
   authState,
   goHome,
   goAbout,
+  goChat,
+  goIngredients,
   goAdminNews,
   goAdminIngredients,
   isAdmin,
@@ -513,6 +578,20 @@ function SiteNav({
         </button>
         <button type="button" onClick={() => goHome('#news')}>
           Blogs/News
+        </button>
+        <button
+          type="button"
+          className={active === 'ingredients' ? 'is-active' : undefined}
+          onClick={goIngredients}
+        >
+          Ingredient
+        </button>
+        <button
+          type="button"
+          className={active === 'chat' ? 'is-active' : undefined}
+          onClick={goChat}
+        >
+          Chatbot
         </button>
         {isAdmin && (
           <>
@@ -851,6 +930,279 @@ function normalizeMarkdownContent(content) {
   }
 
   return content
+}
+
+function ChatPage(props) {
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content:
+        'Chào bạn, mình là Belumi chatbot. Bạn có thể hỏi về routine, loại da hoặc thành phần mỹ phẩm.',
+    },
+  ])
+  const [input, setInput] = useState('')
+  const [skinType, setSkinType] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const sendMessage = async (event) => {
+    event.preventDefault()
+    const text = input.trim()
+    if (!text || loading) return
+
+    setMessages((prev) => [...prev, { role: 'user', content: text }])
+    setInput('')
+    setLoading(true)
+    setError('')
+
+    try {
+      const data = await apiFetch('/chatbot/message', {
+        method: 'POST',
+        body: { message: text, skinType: skinType || null },
+      })
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: data?.answer || 'Mình chưa có câu trả lời cho câu hỏi này.',
+          sources: data?.sources || [],
+          tools: data?.tools || [],
+        },
+      ])
+    } catch (err) {
+      setError(err.message || 'Không gửi được tin nhắn.')
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'Có lỗi khi gọi chatbot. Bạn thử lại sau nhé.' },
+      ])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <main>
+      <SiteNav {...props} />
+      <section className="tool-page chat-page">
+        <div className="tool-hero">
+          <p className="eyebrow">Belumi AI</p>
+          <h1>Chatbot chăm sóc da</h1>
+          <p>Hỏi nhanh về routine, loại da, thành phần mỹ phẩm và dữ liệu skincare trong Belumi.</p>
+        </div>
+
+        <section className="chat-shell">
+          <aside className="chat-side">
+            <MessageCircle size={24} />
+            <h2>Ngữ cảnh</h2>
+            <label>
+              Loại da
+              <select value={skinType} onChange={(event) => setSkinType(event.target.value)}>
+                <option value="">Chưa chọn</option>
+                <option value="oily">Da dầu</option>
+                <option value="dry">Da khô</option>
+                <option value="combination">Da hỗn hợp</option>
+                <option value="sensitive">Da nhạy cảm</option>
+                <option value="normal">Da thường</option>
+              </select>
+            </label>
+            <p>Chatbot đang gọi trực tiếp API backend qua endpoint public.</p>
+          </aside>
+
+          <div className="chat-window">
+            <div className="chat-messages">
+              {messages.map((message, index) => (
+                <article className={`chat-bubble ${message.role}`} key={`${message.role}-${index}`}>
+                  <MarkdownContent content={message.content} />
+                  {message.sources?.length > 0 && (
+                    <div className="chat-sources">
+                      {message.sources.map((source) => (
+                        <a href={source.url || '#'} key={`${source.label}-${source.url}`} target="_blank" rel="noreferrer">
+                          {source.label}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+              {loading && <p className="section-note">Đang soạn câu trả lời...</p>}
+              {error && <p className="form-error">{error}</p>}
+            </div>
+
+            <form className="chat-input" onSubmit={sendMessage}>
+              <input
+                placeholder="Ví dụ: Da dầu mụn có nên dùng niacinamide không?"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+              />
+              <button className="primary-btn" disabled={loading || !input.trim()} type="submit">
+                <Send size={18} /> Gửi
+              </button>
+            </form>
+          </div>
+        </section>
+      </section>
+    </main>
+  )
+}
+
+function IngredientLookupPage(props) {
+  const [search, setSearch] = useState('')
+  const [ingredients, setIngredients] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [scanText, setScanText] = useState('')
+  const [scanResult, setScanResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [scanLoading, setScanLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [scanError, setScanError] = useState('')
+
+  useEffect(() => {
+    let ignore = false
+    const timer = window.setTimeout(async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const params = new URLSearchParams({ page: '1', pageSize: '12' })
+        if (search.trim()) params.set('search', search.trim())
+        const data = await apiFetch(`/ingredients?${params.toString()}`)
+        if (!ignore) setIngredients(data?.items || [])
+      } catch (err) {
+        if (!ignore) setError(err.message || 'Không tải được ingredient.')
+      } finally {
+        if (!ignore) setLoading(false)
+      }
+    }, 250)
+
+    return () => {
+      ignore = true
+      window.clearTimeout(timer)
+    }
+  }, [search])
+
+  const analyzeIngredientText = async (event) => {
+    event.preventDefault()
+    if (!scanText.trim()) return
+    setScanLoading(true)
+    setScanError('')
+    setScanResult(null)
+    try {
+      const data = await apiFetch('/ingredients/scan', {
+        method: 'POST',
+        body: { inputText: scanText.trim(), skinType: null, allergies: [] },
+      })
+      setScanResult(data)
+    } catch (err) {
+      setScanError(err.message || 'Không phân tích được bảng thành phần.')
+    } finally {
+      setScanLoading(false)
+    }
+  }
+
+  return (
+    <main>
+      <SiteNav {...props} />
+      <section className="tool-page ingredient-page">
+        <div className="tool-hero">
+          <p className="eyebrow">Ingredient database</p>
+          <h1>Tra cứu thành phần mỹ phẩm</h1>
+          <p>Tìm ingredient thật từ database backend hoặc dán bảng thành phần để phân tích nhanh.</p>
+        </div>
+
+        <section className="ingredient-layout">
+          <div className="ingredient-search-panel">
+            <label className="search-box">
+              <Search size={18} />
+              <input
+                placeholder="Tìm INCI, tên thường gọi, category..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </label>
+
+            {loading && <p className="section-note">Đang tải ingredient...</p>}
+            {error && <p className="form-error">{error}</p>}
+            {!loading && ingredients.length === 0 && (
+              <p className="section-note">Chưa có ingredient phù hợp.</p>
+            )}
+
+            <div className="ingredient-results">
+              {ingredients.map((ingredient) => (
+                <button
+                  className={selected?.id === ingredient.id ? 'ingredient-result is-active' : 'ingredient-result'}
+                  key={ingredient.id}
+                  type="button"
+                  onClick={() => setSelected(ingredient)}
+                >
+                  <span>{ingredient.category || 'Ingredient'}</span>
+                  <strong>{ingredient.nameInc}</strong>
+                  <small>{ingredient.name}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <aside className="ingredient-detail-panel">
+            {selected ? (
+              <>
+                <span>{selected.category}</span>
+                <h2>{selected.nameInc}</h2>
+                <h3>{selected.name}</h3>
+                <p>{selected.description || 'Chưa có mô tả cho ingredient này.'}</p>
+                {selected.links && (
+                  <a href={selected.links} target="_blank" rel="noreferrer">
+                    Mở nguồn tham khảo
+                  </a>
+                )}
+              </>
+            ) : (
+              <>
+                <ScanText size={28} />
+                <h2>Chọn một ingredient</h2>
+                <p>Thông tin chi tiết sẽ hiện ở đây, không cần chuyển qua trang admin.</p>
+              </>
+            )}
+          </aside>
+        </section>
+
+        <section className="ingredient-scan-panel">
+          <div>
+            <p className="eyebrow">INCI analyzer</p>
+            <h2>Dán bảng thành phần</h2>
+            <p>Phần này dùng API scan public để đọc nhanh ingredient list dạng text.</p>
+          </div>
+          <form onSubmit={analyzeIngredientText}>
+            <textarea
+              placeholder="Ví dụ: Aqua, Niacinamide, Glycerin, Panthenol..."
+              value={scanText}
+              onChange={(event) => setScanText(event.target.value)}
+              rows={5}
+            />
+            <button className="primary-btn" disabled={scanLoading || !scanText.trim()} type="submit">
+              <ScanText size={18} /> {scanLoading ? 'Đang phân tích...' : 'Phân tích'}
+            </button>
+          </form>
+          {scanError && <p className="form-error">{scanError}</p>}
+          {scanResult && (
+            <div className="scan-result">
+              {'safetyScore' in scanResult && <strong>Safety score: {scanResult.safetyScore}</strong>}
+              {Array.isArray(scanResult.recommendations) && scanResult.recommendations.length > 0 && (
+                <p>Gợi ý: {scanResult.recommendations.join(', ')}</p>
+              )}
+              {Array.isArray(scanResult.harmful) && scanResult.harmful.length > 0 && (
+                <ul>
+                  {scanResult.harmful.map((item, index) => (
+                    <li key={`${item.name || item.ingredient || index}`}>
+                      {item.name || item.ingredient || 'Ingredient'}: {item.reason || 'Cần lưu ý'}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
+      </section>
+    </main>
+  )
 }
 
 function AdminNewsPage(props) {
