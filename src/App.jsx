@@ -24,6 +24,7 @@ import logoImg from './assets/belumi_logo_cropped.png'
 import {
   apiFetch,
   auth,
+  deleteCurrentFirebaseAccount,
   loginWithFirebase,
   logoutFirebase,
   observeAuth,
@@ -302,7 +303,7 @@ function App() {
       method: 'DELETE',
       token,
     })
-    await logoutFirebase()
+    await deleteCurrentFirebaseAccount()
     goHome()
   }
 

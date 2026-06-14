@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -45,6 +46,14 @@ export async function registerWithFirebase(fullName, email, password) {
 
 export async function logoutFirebase() {
   await signOut(auth)
+}
+
+export async function deleteCurrentFirebaseAccount() {
+  if (!auth.currentUser) {
+    throw new Error('No signed-in Firebase account found.')
+  }
+
+  await deleteUser(auth.currentUser)
 }
 
 export async function syncCurrentFirebaseUser(user) {
