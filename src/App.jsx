@@ -2,6 +2,7 @@ import {
   ArrowRight,
   Camera,
   CheckCircle2,
+  CircleUserRound,
   Download,
   FileText,
   Heart,
@@ -13,7 +14,6 @@ import {
   Search,
   Send,
   Sparkles,
-  Trash2,
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -23,6 +23,7 @@ import remarkGfm from 'remark-gfm'
 import logoImg from './assets/belumi_logo_cropped.png'
 import {
   apiFetch,
+  auth,
   loginWithFirebase,
   logoutFirebase,
   observeAuth,
@@ -196,6 +197,8 @@ function App() {
     loading: true,
   })
   const [loginOpen, setLoginOpen] = useState(false)
+  const [deleteLoginOpen, setDeleteLoginOpen] = useState(false)
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [publicNews, setPublicNews] = useState([])
   const [newsState, setNewsState] = useState({ loading: true, error: '' })
 
@@ -280,6 +283,54 @@ function App() {
     if (page === 'admin-news' || page === 'admin-ingredients') goHome()
   }
 
+  const requestDeleteAccount = () => {
+    if (authState.appUser) {
+      setDeleteAccountOpen(true)
+      return
+    }
+
+    setDeleteLoginOpen(true)
+  }
+
+  const deleteAccount = async () => {
+    const token =
+      authState.token ||
+      (await authState.firebaseUser?.getIdToken(true)) ||
+      (await auth.currentUser?.getIdToken(true))
+    if (!token) {
+      throw new Error('Please sign in before deleting your account.')
+    }
+
+    await apiFetch('/account', {
+      method: 'DELETE',
+      token,
+    })
+    await logoutFirebase()
+    goHome()
+  }
+
+  const commonModals = (
+    <>
+      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      {deleteLoginOpen && (
+        <LoginModal
+          onClose={() => setDeleteLoginOpen(false)}
+          onSuccess={() => {
+            setDeleteLoginOpen(false)
+            setDeleteAccountOpen(true)
+          }}
+        />
+      )}
+      {deleteAccountOpen && (
+        <DeleteAccountModal
+          email={authState.appUser?.email || authState.firebaseUser?.email || ''}
+          onClose={() => setDeleteAccountOpen(false)}
+          onConfirm={deleteAccount}
+        />
+      )}
+    </>
+  )
+
   if (page === 'about') {
     return (
       <>
@@ -296,8 +347,9 @@ function App() {
           isAdmin={isAdmin}
           logout={logout}
           openLogin={() => setLoginOpen(true)}
+          requestDeleteAccount={requestDeleteAccount}
         />
-        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+        {commonModals}
       </>
     )
   }
@@ -317,8 +369,9 @@ function App() {
           isAdmin={isAdmin}
           logout={logout}
           openLogin={() => setLoginOpen(true)}
+          requestDeleteAccount={requestDeleteAccount}
         />
-        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+        {commonModals}
       </>
     )
   }
@@ -338,8 +391,9 @@ function App() {
           isAdmin={isAdmin}
           logout={logout}
           openLogin={() => setLoginOpen(true)}
+          requestDeleteAccount={requestDeleteAccount}
         />
-        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+        {commonModals}
       </>
     )
   }
@@ -359,8 +413,9 @@ function App() {
           isAdmin={isAdmin}
           logout={logout}
           openLogin={() => setLoginOpen(true)}
+          requestDeleteAccount={requestDeleteAccount}
         />
-        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+        {commonModals}
       </>
     )
   }
@@ -381,8 +436,9 @@ function App() {
           isAdmin={isAdmin}
           logout={logout}
           openLogin={() => setLoginOpen(true)}
+          requestDeleteAccount={requestDeleteAccount}
         />
-        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+        {commonModals}
       </>
     )
   }
@@ -403,8 +459,9 @@ function App() {
           isAdmin={isAdmin}
           logout={logout}
           openLogin={() => setLoginOpen(true)}
+          requestDeleteAccount={requestDeleteAccount}
         />
-        {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+        {commonModals}
       </>
     )
   }
@@ -423,6 +480,7 @@ function App() {
         isAdmin={isAdmin}
         logout={logout}
         openLogin={() => setLoginOpen(true)}
+        requestDeleteAccount={requestDeleteAccount}
       />
 
       <section className="hero-section" id="home">
@@ -537,7 +595,7 @@ function App() {
         <span>AI và tư vấn làm đẹp cá nhân hóa.</span>
       </footer>
 
-      {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
+      {commonModals}
     </main>
   )
 }
@@ -553,8 +611,10 @@ function SiteNav({
   isAdmin,
   logout,
   openLogin,
+  requestDeleteAccount,
 }) {
   const [chatOpen, setChatOpen] = useState(active !== 'chat')
+  const [profileOpen, setProfileOpen] = useState(false)
   const [widgetMessages, setWidgetMessages] = useState([
     {
       role: 'assistant',
@@ -565,6 +625,14 @@ function SiteNav({
   const [widgetInput, setWidgetInput] = useState('')
   const [widgetLoading, setWidgetLoading] = useState(false)
   const [widgetError, setWidgetError] = useState('')
+  const profileName =
+    authState.appUser?.fullName ||
+    authState.firebaseUser?.displayName ||
+    authState.appUser?.email ||
+    authState.firebaseUser?.email ||
+    'Belumi user'
+  const profilePhoto = authState.appUser?.avatarUrl || authState.firebaseUser?.photoURL || ''
+  const profileInitial = profileName.trim().charAt(0).toUpperCase() || 'B'
 
   const sendWidgetMessage = async (event) => {
     event.preventDefault()
@@ -650,13 +718,52 @@ function SiteNav({
             </button>
           </>
         )}
-        {authState.appUser ? (
-          <button type="button" onClick={logout}>
-            Đăng xuất
-          </button>
-        ) : (
+        {authState.appUser && (
+          <div className="profile-menu">
+            <button
+              className="profile-trigger"
+              type="button"
+              onClick={() => setProfileOpen((open) => !open)}
+              aria-label="Mo menu tai khoan"
+              aria-expanded={profileOpen}
+            >
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="" />
+              ) : (
+                <span>{profileInitial}</span>
+              )}
+            </button>
+            {profileOpen && (
+              <div className="profile-dropdown">
+                <div className="profile-summary">
+                  <CircleUserRound size={18} />
+                  <span>{profileName}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileOpen(false)
+                    requestDeleteAccount()
+                  }}
+                >
+                  Xoa tai khoan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileOpen(false)
+                    logout()
+                  }}
+                >
+                  Dang xuat
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {!authState.appUser && (
           <button type="button" onClick={openLogin}>
-            Đăng nhập
+            Dang nhap
           </button>
         )}
       </nav>
@@ -721,7 +828,7 @@ function SiteNav({
   )
 }
 
-function LoginModal({ onClose }) {
+function LoginModal({ onClose, onSuccess }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -733,7 +840,8 @@ function LoginModal({ onClose }) {
     setLoading(true)
     try {
       await loginWithFirebase(email, password)
-      onClose()
+      if (onSuccess) onSuccess()
+      else onClose()
     } catch (err) {
       setError(err.message || 'Không đăng nhập được.')
     } finally {
@@ -772,6 +880,47 @@ function LoginModal({ onClose }) {
           {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
       </form>
+    </div>
+  )
+}
+
+function DeleteAccountModal({ email, onClose, onConfirm }) {
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const confirm = async () => {
+    setError('')
+    setLoading(true)
+    try {
+      await onConfirm()
+      onClose()
+    } catch (err) {
+      setError(err.message || 'Could not delete account.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="login-modal delete-account-modal" role="dialog" aria-modal="true">
+        <button className="modal-close" type="button" onClick={onClose} disabled={loading}>
+          <X size={18} />
+        </button>
+        <p className="eyebrow">Delete account</p>
+        <h2>Ban co muon xoa tai khoan khong?</h2>
+        <p>
+          Tai khoan {email || 'nay'} va du lieu Belumi lien quan se bi xoa khoi he thong backend.
+        </p>
+        {error && <p className="form-error">{error}</p>}
+        <div className="delete-account-actions">
+          <button type="button" onClick={onClose} disabled={loading}>
+            Khong
+          </button>
+          <button className="danger-btn" type="button" onClick={confirm} disabled={loading}>
+            {loading ? 'Dang xoa...' : 'Co, xoa tai khoan'}
+          </button>
+        </div>
+      </section>
     </div>
   )
 }
