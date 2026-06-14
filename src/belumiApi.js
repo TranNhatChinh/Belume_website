@@ -1,9 +1,11 @@
 import { initializeApp } from 'firebase/app'
 import {
+  createUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut,
+  updateProfile,
 } from 'firebase/auth'
 
 const firebaseConfig = {
@@ -28,6 +30,15 @@ export function observeAuth(callback) {
 
 export async function loginWithFirebase(email, password) {
   const credential = await signInWithEmailAndPassword(auth, email, password)
+  const idToken = await credential.user.getIdToken(true)
+  return syncFirebaseLogin(idToken)
+}
+
+export async function registerWithFirebase(fullName, email, password) {
+  const credential = await createUserWithEmailAndPassword(auth, email, password)
+  if (fullName.trim()) {
+    await updateProfile(credential.user, { displayName: fullName.trim() })
+  }
   const idToken = await credential.user.getIdToken(true)
   return syncFirebaseLogin(idToken)
 }

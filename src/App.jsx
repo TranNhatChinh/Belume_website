@@ -27,6 +27,7 @@ import {
   loginWithFirebase,
   logoutFirebase,
   observeAuth,
+  registerWithFirebase,
   syncCurrentFirebaseUser,
 } from './belumiApi'
 import './App.css'
@@ -185,6 +186,7 @@ function App() {
     if (window.location.pathname === '/about') return 'about'
     if (window.location.pathname === '/chat') return 'chat'
     if (window.location.pathname === '/ingredients') return 'ingredients'
+    if (window.location.pathname === '/delete-account') return 'delete-account'
     if (window.location.pathname === '/admin/news') return 'admin-news'
     if (window.location.pathname === '/admin/ingredients') return 'admin-ingredients'
     if (window.location.pathname.startsWith('/news/')) return 'news-detail'
@@ -197,8 +199,6 @@ function App() {
     loading: true,
   })
   const [loginOpen, setLoginOpen] = useState(false)
-  const [deleteLoginOpen, setDeleteLoginOpen] = useState(false)
-  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
   const [publicNews, setPublicNews] = useState([])
   const [newsState, setNewsState] = useState({ loading: true, error: '' })
 
@@ -227,6 +227,7 @@ function App() {
       if (window.location.pathname === '/about') setPage('about')
       else if (window.location.pathname === '/chat') setPage('chat')
       else if (window.location.pathname === '/ingredients') setPage('ingredients')
+      else if (window.location.pathname === '/delete-account') setPage('delete-account')
       else if (window.location.pathname === '/admin/news') setPage('admin-news')
       else if (window.location.pathname === '/admin/ingredients') setPage('admin-ingredients')
       else if (window.location.pathname.startsWith('/news/')) setPage('news-detail')
@@ -274,6 +275,7 @@ function App() {
   const goAbout = () => navigate('about', '/about')
   const goChat = () => navigate('chat', '/chat')
   const goIngredients = () => navigate('ingredients', '/ingredients')
+  const goDeleteAccount = () => navigate('delete-account', '/delete-account')
   const goAdminNews = () => navigate('admin-news', '/admin/news')
   const goAdminIngredients = () => navigate('admin-ingredients', '/admin/ingredients')
   const goNewsDetail = (slug) => navigate('news-detail', `/news/${slug}`)
@@ -284,12 +286,7 @@ function App() {
   }
 
   const requestDeleteAccount = () => {
-    if (authState.appUser) {
-      setDeleteAccountOpen(true)
-      return
-    }
-
-    setDeleteLoginOpen(true)
+    goDeleteAccount()
   }
 
   const deleteAccount = async () => {
@@ -312,22 +309,6 @@ function App() {
   const commonModals = (
     <>
       {loginOpen && <LoginModal onClose={() => setLoginOpen(false)} />}
-      {deleteLoginOpen && (
-        <LoginModal
-          onClose={() => setDeleteLoginOpen(false)}
-          onSuccess={() => {
-            setDeleteLoginOpen(false)
-            setDeleteAccountOpen(true)
-          }}
-        />
-      )}
-      {deleteAccountOpen && (
-        <DeleteAccountModal
-          email={authState.appUser?.email || authState.firebaseUser?.email || ''}
-          onClose={() => setDeleteAccountOpen(false)}
-          onConfirm={deleteAccount}
-        />
-      )}
     </>
   )
 
@@ -458,6 +439,30 @@ function App() {
           goNewsDetail={goNewsDetail}
           isAdmin={isAdmin}
           logout={logout}
+          openLogin={() => setLoginOpen(true)}
+          requestDeleteAccount={requestDeleteAccount}
+        />
+        {commonModals}
+      </>
+    )
+  }
+
+  if (page === 'delete-account') {
+    return (
+      <>
+        <DeleteAccountPage
+          active="delete-account"
+          authState={authState}
+          goAbout={goAbout}
+          goChat={goChat}
+          goIngredients={goIngredients}
+          goAdminIngredients={goAdminIngredients}
+          goAdminNews={goAdminNews}
+          goHome={goHome}
+          goNewsDetail={goNewsDetail}
+          isAdmin={isAdmin}
+          logout={logout}
+          onDeleteAccount={deleteAccount}
           openLogin={() => setLoginOpen(true)}
           requestDeleteAccount={requestDeleteAccount}
         />
@@ -743,15 +748,6 @@ function SiteNav({
                   type="button"
                   onClick={() => {
                     setProfileOpen(false)
-                    requestDeleteAccount()
-                  }}
-                >
-                  Xoa tai khoan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileOpen(false)
                     logout()
                   }}
                 >
@@ -829,17 +825,30 @@ function SiteNav({
 }
 
 function LoginModal({ onClose, onSuccess }) {
+  const [mode, setMode] = useState('login')
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const isRegister = mode === 'register'
 
   const submit = async (event) => {
     event.preventDefault()
     setError('')
+    if (isRegister && password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+
     setLoading(true)
     try {
-      await loginWithFirebase(email, password)
+      if (isRegister) {
+        await registerWithFirebase(fullName, email, password)
+      } else {
+        await loginWithFirebase(email, password)
+      }
       if (onSuccess) onSuccess()
       else onClose()
     } catch (err) {
@@ -856,7 +865,20 @@ function LoginModal({ onClose, onSuccess }) {
           <X size={18} />
         </button>
         <p className="eyebrow">Belumi account</p>
-        <h2>Đăng nhập</h2>
+        <h2>{isRegister ? 'Dang ky tai khoan' : 'Dang nhap'}</h2>
+        {isRegister && (
+          <>
+            <label htmlFor="login-full-name">Ho ten</label>
+            <input
+              id="login-full-name"
+              autoComplete="name"
+              onChange={(event) => setFullName(event.target.value)}
+              required
+              type="text"
+              value={fullName}
+            />
+          </>
+        )}
         <label htmlFor="login-email">Email</label>
         <input
           id="login-email"
@@ -875,10 +897,35 @@ function LoginModal({ onClose, onSuccess }) {
           type="password"
           value={password}
         />
+        {isRegister && (
+          <>
+            <label htmlFor="login-confirm-password">Nhap lai mat khau</label>
+            <input
+              id="login-confirm-password"
+              autoComplete="new-password"
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              required
+              type="password"
+              value={confirmPassword}
+            />
+          </>
+        )}
         {error && <p className="form-error">{error}</p>}
         <button className="primary-btn" disabled={loading} type="submit">
-          {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          {loading ? 'Dang xu ly...' : isRegister ? 'Dang ky' : 'Dang nhap'}
         </button>
+        <p className="auth-switch">
+          {isRegister ? 'Da co tai khoan?' : 'Chua co tai khoan?'}
+          <button
+            type="button"
+            onClick={() => {
+              setMode(isRegister ? 'login' : 'register')
+              setError('')
+            }}
+          >
+            {isRegister ? 'Dang nhap' : 'Hay dang ky'}
+          </button>
+        </p>
       </form>
     </div>
   )
@@ -907,7 +954,7 @@ function DeleteAccountModal({ email, onClose, onConfirm }) {
           <X size={18} />
         </button>
         <p className="eyebrow">Delete account</p>
-        <h2>Ban co muon xoa tai khoan khong?</h2>
+        <h2>{isRegister ? 'Dang ky tai khoan' : 'Dang nhap'}</h2>
         <p>
           Tai khoan {email || 'nay'} va du lieu Belumi lien quan se bi xoa khoi he thong backend.
         </p>
@@ -922,6 +969,183 @@ function DeleteAccountModal({ email, onClose, onConfirm }) {
         </div>
       </section>
     </div>
+  )
+}
+
+function DeleteAccountPage(props) {
+  const { authState, onDeleteAccount } = props
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const email = authState.appUser?.email || authState.firebaseUser?.email || ''
+
+  const confirmDelete = async () => {
+    setError('')
+    setLoading(true)
+    try {
+      await onDeleteAccount()
+    } catch (err) {
+      setError(err.message || 'Could not submit account deletion request.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <main>
+      <SiteNav {...props} active="delete-account" />
+      <section className="delete-account-page">
+        <div className="section-head">
+          <p className="eyebrow">Belumi account deletion</p>
+          <h1>Delete your Belumi account and app data</h1>
+          <p>
+            This page is for Belumi users who want to request deletion of the account used in
+            the Belumi app and website.
+          </p>
+        </div>
+
+        <div className="delete-account-layout">
+          <section className="delete-account-info">
+            <h2>Steps to request account deletion</h2>
+            <ol>
+              <li>Sign in with the Belumi account you want to delete.</li>
+              <li>Review what data will be deleted and what may be retained.</li>
+              <li>Confirm the deletion request on this page.</li>
+            </ol>
+
+            <h2>Data deleted</h2>
+            <p>
+              Belumi deletes your account profile, beauty profile, wishlist, saved news actions,
+              AI skin analysis records, ingredient lookup history, makeup consultation history,
+              AI usage logs, subscription records, and payment records linked to your account.
+            </p>
+
+            <h2>Data retained</h2>
+            <p>
+              Belumi may retain limited records when required for security, fraud prevention,
+              legal compliance, dispute handling, accounting, or backup recovery. Retained records
+              are kept only as long as needed for those purposes, typically up to 30 days for
+              operational backups and up to the legally required period for transaction records.
+            </p>
+          </section>
+
+          <section className="delete-account-card">
+            {!authState.appUser ? (
+              <>
+                <h2>Sign in to continue</h2>
+                <p>After you sign in successfully, Belumi will ask you to confirm deletion.</p>
+                <DeleteAccountAuthForm />
+              </>
+            ) : (
+              <>
+                <h2>Confirm account deletion</h2>
+                <p>
+                  You are signed in as <strong>{email || 'this Belumi account'}</strong>. Confirm
+                  only if you want Belumi to delete this account and the linked app data.
+                </p>
+                {error && <p className="form-error">{error}</p>}
+                <button className="danger-btn" type="button" onClick={confirmDelete} disabled={loading}>
+                  {loading ? 'Submitting...' : 'Yes, delete my account'}
+                </button>
+              </>
+            )}
+          </section>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function DeleteAccountAuthForm() {
+  const [mode, setMode] = useState('login')
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const isRegister = mode === 'register'
+
+  const submit = async (event) => {
+    event.preventDefault()
+    setError('')
+    if (isRegister && password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      if (isRegister) await registerWithFirebase(fullName, email, password)
+      else await loginWithFirebase(email, password)
+    } catch (err) {
+      setError(err.message || (isRegister ? 'Could not create account.' : 'Could not sign in.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form className="delete-account-auth-form" onSubmit={submit}>
+      {isRegister && (
+        <>
+          <label htmlFor="delete-full-name">Full name</label>
+          <input
+            id="delete-full-name"
+            autoComplete="name"
+            onChange={(event) => setFullName(event.target.value)}
+            required
+            type="text"
+            value={fullName}
+          />
+        </>
+      )}
+      <label htmlFor="delete-email">Email</label>
+      <input
+        id="delete-email"
+        autoComplete="email"
+        onChange={(event) => setEmail(event.target.value)}
+        required
+        type="email"
+        value={email}
+      />
+      <label htmlFor="delete-password">Password</label>
+      <input
+        id="delete-password"
+        autoComplete={isRegister ? 'new-password' : 'current-password'}
+        onChange={(event) => setPassword(event.target.value)}
+        required
+        type="password"
+        value={password}
+      />
+      {isRegister && (
+        <>
+          <label htmlFor="delete-confirm-password">Confirm password</label>
+          <input
+            id="delete-confirm-password"
+            autoComplete="new-password"
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            required
+            type="password"
+            value={confirmPassword}
+          />
+        </>
+      )}
+      {error && <p className="form-error">{error}</p>}
+      <button className="primary-btn" disabled={loading} type="submit">
+        {loading ? 'Please wait...' : isRegister ? 'Create account' : 'Sign in'}
+      </button>
+      <p className="auth-switch">
+        {isRegister ? 'Already have an account?' : 'No account yet?'}
+        <button
+          type="button"
+          onClick={() => {
+            setMode(isRegister ? 'login' : 'register')
+            setError('')
+          }}
+        >
+          {isRegister ? 'Sign in' : 'Register'}
+        </button>
+      </p>
+    </form>
   )
 }
 
@@ -1667,7 +1891,7 @@ function AdminNewsPage(props) {
               <div className="admin-editor-head">
                 <div>
                   <p className="eyebrow">Markdown editor</p>
-                  <h2>{selected ? 'Sửa bài viết' : 'Tạo bài viết'}</h2>
+        <h2>{isRegister ? 'Dang ky tai khoan' : 'Dang nhap'}</h2>
                 </div>
                 <button className="modal-close" type="button" onClick={resetForm}>
                   <X size={18} />
@@ -1945,7 +2169,7 @@ function AdminIngredientsPage(props) {
         <div className="admin-layout admin-ingredient-layout">
           <form className="admin-form" onSubmit={saveIngredient}>
             <div className="admin-form-head">
-              <h2>{selected ? 'Sửa ingredient' : 'Tạo ingredient'}</h2>
+        <h2>{isRegister ? 'Dang ky tai khoan' : 'Dang nhap'}</h2>
               {selected && (
                 <button type="button" onClick={resetForm}>
                   Hủy sửa
