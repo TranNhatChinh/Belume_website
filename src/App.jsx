@@ -784,10 +784,12 @@ function SiteNav({
                     <MarkdownContent content={message.content} />
                     {message.sources?.length > 0 && (
                       <div className="chat-widget-sources">
-                        {message.sources.map((source) => (
-                          <a href={source.url || '#'} key={`${source.label}-${source.url}`} target="_blank" rel="noreferrer">
-                            {source.label}
-                          </a>
+                        {message.sources.map((source, sourceIndex) => (
+                          <ReferenceLinks
+                            key={`${source.label}-${source.url}-${sourceIndex}`}
+                            label={source.label}
+                            value={source.url}
+                          />
                         ))}
                       </div>
                     )}
@@ -1402,6 +1404,42 @@ function normalizeMarkdownContent(content) {
   return content
 }
 
+function extractReferenceUrls(value) {
+  if (!value) return []
+
+  const normalized = String(value)
+    .replace(/%20%7C%20/gi, ' | ')
+    .replace(/%7C/gi, '|')
+  const matches = normalized.match(/https?:\/\/[^\s|<>"')\]]+/gi) || []
+
+  return [...new Set(matches.map((url) => url.replace(/[.,;:]+$/, '')))]
+}
+
+function referenceLabel(label, url, index, total) {
+  if (total <= 1) return label || 'Nguồn tham khảo'
+
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return `${label || 'Nguồn tham khảo'} ${index + 1}`
+  }
+}
+
+function ReferenceLinks({ className, label = 'Nguồn tham khảo', value }) {
+  const urls = extractReferenceUrls(value)
+  if (urls.length === 0) return null
+
+  return (
+    <div className={className}>
+      {urls.map((url, index) => (
+        <a href={url} key={`${url}-${index}`} target="_blank" rel="noreferrer">
+          {referenceLabel(label, url, index, urls.length)}
+        </a>
+      ))}
+    </div>
+  )
+}
+
 function ChatPage(props) {
   const [messages, setMessages] = useState([
     {
@@ -1485,10 +1523,12 @@ function ChatPage(props) {
                   <MarkdownContent content={message.content} />
                   {message.sources?.length > 0 && (
                     <div className="chat-sources">
-                      {message.sources.map((source) => (
-                        <a href={source.url || '#'} key={`${source.label}-${source.url}`} target="_blank" rel="noreferrer">
-                          {source.label}
-                        </a>
+                      {message.sources.map((source, sourceIndex) => (
+                        <ReferenceLinks
+                          key={`${source.label}-${source.url}-${sourceIndex}`}
+                          label={source.label}
+                          value={source.url}
+                        />
                       ))}
                     </div>
                   )}
@@ -1618,11 +1658,11 @@ function IngredientLookupPage(props) {
                 <h2>{selected.nameInc}</h2>
                 <h3>{selected.name}</h3>
                 <p>{selected.description || 'Chưa có mô tả cho ingredient này.'}</p>
-                {selected.links && (
-                  <a href={selected.links} target="_blank" rel="noreferrer">
-                    Mở nguồn tham khảo
-                  </a>
-                )}
+                <ReferenceLinks
+                  className="ingredient-reference-links"
+                  label="Mở nguồn tham khảo"
+                  value={selected.links}
+                />
               </>
             ) : (
               <>

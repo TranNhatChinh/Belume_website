@@ -618,6 +618,11 @@ h3 {
   margin-top: 10px;
 }
 
+.chat-widget-sources > div,
+.chat-sources > div {
+  display: contents;
+}
+
 .chat-sources a {
   color: var(--ink);
   font-weight: 900;
@@ -710,6 +715,12 @@ h3 {
 .ingredient-detail-panel a {
   color: var(--ink);
   font-weight: 900;
+}
+
+.ingredient-reference-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .ingredient-scan-panel {
