@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
   BookOpen,
+  Ticket,
 } from 'lucide-react'
 import { SiteNav } from '../../App'
 import AdminDashboardTab from './AdminDashboardTab'
@@ -21,6 +22,7 @@ import AdminNewsTab from './AdminNewsTab'
 import AdminNewsCategoriesTab from './AdminNewsCategoriesTab'
 import AdminIngredientsTab from './AdminIngredientsTab'
 import AdminContactsTab from './AdminContactsTab'
+import AdminVouchersTab from './AdminVouchersTab'
 
 export default function AdminControlPanel(props) {
   const { activeTab, setActiveTab, authState, isAdmin, openLogin, logout } = props
@@ -75,6 +77,8 @@ export default function AdminControlPanel(props) {
         return <AdminIngredientsTab token={authState.token} showToast={showToast} />
       case 'contacts':
         return <AdminContactsTab token={authState.token} showToast={showToast} />
+      case 'vouchers':
+        return <AdminVouchersTab token={authState.token} showToast={showToast} />
       default:
         return <AdminDashboardTab token={authState.token} showToast={showToast} />
     }
@@ -88,6 +92,7 @@ export default function AdminControlPanel(props) {
     { id: 'news', label: 'Bài viết', icon: BookOpen },
     { id: 'categories', label: 'Danh mục blog', icon: FolderOpen },
     { id: 'ingredients', label: 'Hoạt chất', icon: FlaskConical },
+    { id: 'vouchers', label: 'Voucher', icon: Ticket },
     { id: 'contacts', label: 'Yêu cầu liên hệ', icon: Mail },
   ]
 
